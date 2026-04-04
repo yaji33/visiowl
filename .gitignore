@@ -29,3 +29,11 @@ coverage
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Solana keypairs 
+*.json.bak
+score-authority.json
+/keypairs/
+*.keypair
+
+**/score-authority*
