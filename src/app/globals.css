@@ -1,0 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;      --foreground: 0 0% 10%;
+    --card: 40 20% 99%;            --card-foreground: 0 0% 10%;
+    --primary: 0 0% 10%;           --primary-foreground: 40 20% 98%;
+    --secondary: 40 10% 94%;       --secondary-foreground: 0 0% 10%;
+    --muted: 40 10% 94%;           --muted-foreground: 30 5% 50%;
+    --accent: 181 80% 25%;         --accent-foreground: 40 20% 98%;
+    --accent-warm: 32 90% 37%;     --accent-warm-foreground: 40 20% 98%;
+    --destructive: 0 84% 60%;      --destructive-foreground: 0 0% 100%;
+    --border: 35 15% 82%;          --border-light: 35 12% 90%;
+    --input: 35 15% 85%;           --ring: 181 80% 25%;
+    --radius: 0.25rem;
+  }
+  *, *::before, *::after { box-sizing: border-box; border-color: hsl(var(--border)); }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); font-family: "DM Sans", sans-serif; }
+  h1,h2,h3,h4,h5,h6 { font-family: "Fraunces", serif; font-optical-sizing: auto; }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+}
+
+@layer components {
+  .card-surface  { background-color: hsl(var(--card)); border: 1px solid hsl(var(--border)); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .card-divider  { border-top: 1px solid hsl(var(--border-light)); margin-inline: 1.5rem; }
+  .label-caps    { font-size: .625rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; font-family: "DM Sans", sans-serif; }
+  .address-mono  { font-family: "IBM Plex Mono", monospace; }
+}
+
+@layer utilities {
+  .font-serif-display { font-family: "Fraunces", serif; font-optical-sizing: auto; }
+  .font-mono-address  { font-family: "IBM Plex Mono", monospace; }
+  .text-balance       { text-wrap: balance; }
+  .scrollbar-hide     { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+}
+
+/* Wallet adapter overrides */
+.wallet-adapter-modal-wrapper { background: hsl(var(--card)) !important; border: 1px solid hsl(var(--border)) !important; border-radius: var(--radius) !important; }
+.wallet-adapter-button        { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; border-radius: var(--radius) !important; font-family: "DM Sans", sans-serif !important; font-size: .875rem !important; }
+.wallet-adapter-button:hover  { opacity: .9 !important; }

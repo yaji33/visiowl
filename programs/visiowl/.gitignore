@@ -1,0 +1,9 @@
+.anchor
+test-ledger
+
+# Anchor build output — keep checked-in IDL + types stubs; regenerate with `anchor build`
+target/**
+!target/idl/
+!target/types/
+!target/idl/visiowl.json
+!target/types/visiowl.ts
