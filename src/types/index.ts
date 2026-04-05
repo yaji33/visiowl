@@ -1,5 +1,3 @@
-// Visiowl — Core Types
-
 export type Tier = "Early Wallet" | "Active Member" | "Established" | "Power User" | "OG";
 
 export type SignalCategory =
@@ -14,10 +12,10 @@ export interface Signal {
   category: SignalCategory;
   label: string;
   description: string;
-  value: number;        // normalised 0–1 for progress bar
-  contribution: number; // actual points (0–max)
+  value: number;
+  contribution: number; 
   maxContribution: number;
-  weight: number;       // % of total score
+  weight: number; 
 }
 
 export interface Badge {
@@ -57,6 +55,7 @@ export interface ScoreResponse {
   levelUpActions: LevelUpAction[];
   lastRefreshed: string;
   cached: boolean;
+  createdAt: number;
 }
 
 export type SpaceType = "open" | "verified";
