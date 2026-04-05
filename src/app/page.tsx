@@ -30,8 +30,6 @@ export default function Home() {
         levelUpActions: profile.levelUpActions,
       }
     : null;
-  const displayed = profileAsWallet ?? (address ? null : demoWallet);
-
   return (
     <div className="mx-auto flex max-w-4xl flex-col items-center gap-10 px-6 py-16">
       <div className="space-y-3 text-center">
@@ -41,25 +39,40 @@ export default function Home() {
         <p className="text-[hsl(var(--muted-foreground))]">We just make it visible to everyone.</p>
       </div>
 
-      {!publicKey && (
-        <button
-          onClick={() => setVisible(true)}
-          className="h-10 bg-[hsl(var(--primary))] px-6 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
-        >
-          Connect Wallet
-        </button>
+      {isLoading && <RepCard wallet={demoWallet} variant="skeleton" />}
+
+      {!isLoading && !publicKey && (
+        <div className="relative w-full max-w-[560px]">
+          <div className="pointer-events-none blur-md brightness-90 select-none">
+            <RepCard wallet={demoWallet} animate={false} />
+          </div>
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-end pb-14"
+            style={{
+              background:
+                "linear-gradient(to bottom, transparent 18%, hsl(var(--background) / 0.72) 48%, hsl(var(--background)) 66%)",
+            }}
+          >
+            <div className="flex flex-col items-center gap-4">
+              <p className="font-serif-display text-xl font-light text-[hsl(var(--foreground))]">
+                Connect to reveal your score
+              </p>
+              <button
+                onClick={() => setVisible(true)}
+                className="h-10 bg-[hsl(var(--primary))] px-6 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
+              >
+                Connect Wallet
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {isLoading && <RepCard wallet={demoWallet} variant="skeleton" />}
-      {displayed && (
+      {!isLoading && profileAsWallet && (
         <div className="flex w-full flex-col items-center gap-6">
-          <RepCard
-            wallet={displayed}
-            animate={true}
-            onRefresh={profileAsWallet ? () => void refetch() : undefined}
-          />
+          <RepCard wallet={profileAsWallet} animate={true} onRefresh={() => void refetch()} />
           <div className="w-full max-w-[560px]">
-            <LevelUpPanel actions={displayed.levelUpActions} />
+            <LevelUpPanel actions={profileAsWallet.levelUpActions} />
           </div>
         </div>
       )}

@@ -97,59 +97,7 @@
   }
 }
 
-/* Wallet adapter overrides — library defaults to a dark theme; these adapt it to the app's light palette */
-.wallet-adapter-modal-overlay {
-  background: rgba(0, 0, 0, 0.45) !important;
-}
-.wallet-adapter-modal-wrapper {
-  background: hsl(var(--card)) !important;
-  border: 1px solid hsl(var(--border)) !important;
-  border-radius: var(--radius) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
-}
-.wallet-adapter-modal-title {
-  color: hsl(var(--foreground)) !important;
-  font-family: "DM Sans", sans-serif !important;
-  font-size: 1rem !important;
-  font-weight: 500 !important;
-}
-.wallet-adapter-modal-list li {
-  color: hsl(var(--foreground)) !important;
-}
-.wallet-adapter-modal-list-item-name {
-  color: hsl(var(--foreground)) !important;
-  font-family: "DM Sans", sans-serif !important;
-}
-.wallet-adapter-modal-list-item-status {
-  color: hsl(var(--muted-foreground)) !important;
-  font-family: "DM Sans", sans-serif !important;
-}
-.wallet-adapter-modal-list-more {
-  color: hsl(var(--muted-foreground)) !important;
-  font-family: "DM Sans", sans-serif !important;
-}
-.wallet-adapter-modal-list-more:hover {
-  color: hsl(var(--foreground)) !important;
-}
-.wallet-adapter-modal-collapse-button {
-  color: hsl(var(--foreground)) !important;
-}
-.wallet-adapter-modal-middle-button {
-  background: hsl(var(--secondary)) !important;
-  color: hsl(var(--foreground)) !important;
-  border-radius: var(--radius) !important;
-}
-.wallet-adapter-button {
-  background: hsl(var(--primary)) !important;
-  color: hsl(var(--primary-foreground)) !important;
-  border-radius: var(--radius) !important;
-  font-family: "DM Sans", sans-serif !important;
-  font-size: 0.875rem !important;
-}
-.wallet-adapter-button:hover {
-  opacity: 0.9 !important;
-}
-.wallet-adapter-button:not([disabled]):hover {
-  background: hsl(var(--primary)) !important;
-  opacity: 0.9 !important;
+/* Suppress the library's built-in dark modal — replaced by our custom WalletModal component */
+.wallet-adapter-modal {
+  display: none !important;
 }
