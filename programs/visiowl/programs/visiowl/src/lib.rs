@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 
-declare_id!("2PKNewSyFjQ3DHfo638JgL7HBVBSZvcnVNahGzMm5fTC");
+pub mod constants;
+pub mod errors;
 
-pub const MAX_BADGES: usize = 16;
-pub const MAX_BADGE_LABEL: usize = 32;
-pub const MAX_SPACE_NAME: usize = 64;
-pub const MAX_SPACE_DESC: usize = 256;
-pub const MAX_SCORE: u16 = 1000;
+use constants::*;
+use errors::VisiowlError;
+
+declare_id!("2PKNewSyFjQ3DHfo638JgL7HBVBSZvcnVNahGzMm5fTC");
 
 pub mod score_authority {
     use anchor_lang::declare_id;
@@ -52,16 +52,40 @@ pub mod visiowl {
 
     pub fn award_badge(ctx: Context<AwardBadge>, label: String) -> Result<()> {
         require!(label.len() <= MAX_BADGE_LABEL, VisiowlError::BadgeLabelTooLong);
+
+        {
+            let rep_card = &ctx.accounts.rep_card;
+            require!(rep_card.badges.len() < MAX_BADGES, VisiowlError::TooManyBadges);
+            require!(
+                !rep_card.badges.iter().any(|b: &Badge| b.label == label),
+                VisiowlError::DuplicateBadge
+            );
+        }
+
+        let new_len = RepCard::base_len()
+            + (ctx.accounts.rep_card.badges.len() + 1) * Badge::LEN;
+
+        let rent = Rent::get()?;
+        let new_minimum_balance = rent.minimum_balance(new_len);
+        let current_balance = ctx.accounts.rep_card.to_account_info().lamports();
+
+        if new_minimum_balance > current_balance {
+            let diff = new_minimum_balance - current_balance;
+            anchor_lang::system_program::transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    anchor_lang::system_program::Transfer {
+                        from: ctx.accounts.score_authority.to_account_info(),
+                        to: ctx.accounts.rep_card.to_account_info(),
+                    },
+                ),
+                diff,
+            )?;
+        }
+
+        ctx.accounts.rep_card.to_account_info().resize(new_len)?;
+
         let rep_card = &mut ctx.accounts.rep_card;
-        require!(rep_card.badges.len() < MAX_BADGES, VisiowlError::TooManyBadges);
-        require!(
-            !rep_card.badges.iter().any(|b: &Badge| b.label == label),
-            VisiowlError::DuplicateBadge
-        );
-
-        let new_len = RepCard::base_len() + (rep_card.badges.len() + 1) * Badge::LEN;
-        rep_card.to_account_info().resize(new_len)?;
-
         rep_card.badges.push(Badge {
             label: label.clone(),
             awarded_at: Clock::get()?.unix_timestamp,
@@ -74,7 +98,6 @@ pub mod visiowl {
         });
         Ok(())
     }
-
     pub fn set_visibility(ctx: Context<SetVisibility>, is_public: bool) -> Result<()> {
         let rep_card = &mut ctx.accounts.rep_card;
         rep_card.is_public = is_public;
@@ -339,22 +362,4 @@ pub struct AccessVerified {
     pub score:     u16,
     pub required:  u16,
     pub timestamp: i64,
-}
-
-#[error_code]
-pub enum VisiowlError {
-    #[msg("Rep Score must be between 0 and 1000")]
-    ScoreOutOfRange,
-    #[msg("Badge label exceeds 32 characters")]
-    BadgeLabelTooLong,
-    #[msg("Wallet has reached the maximum badge limit (16)")]
-    TooManyBadges,
-    #[msg("This badge has already been awarded to this wallet")]
-    DuplicateBadge,
-    #[msg("Space name exceeds 64 characters")]
-    SpaceNameTooLong,
-    #[msg("Space description exceeds 256 characters")]
-    SpaceDescTooLong,
-    #[msg("Wallet Rep Score does not meet the Space's minimum requirement")]
-    InsufficientScore,
 }

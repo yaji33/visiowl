@@ -9,14 +9,14 @@ skip-lint = false
 visiowl = "2PKNewSyFjQ3DHfo638JgL7HBVBSZvcnVNahGzMm5fTC"
 
 [programs.localnet]
-visiowl = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+visiowl = "2PKNewSyFjQ3DHfo638JgL7HBVBSZvcnVNahGzMm5fTC"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "../../node_modules/.bin/ts-mocha -p ./tsconfig.json -t 1000000 tests/visiowl.ts"

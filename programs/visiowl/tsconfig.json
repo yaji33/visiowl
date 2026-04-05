@@ -13,5 +13,8 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["tests/**/*"]
+  "include": [
+    "tests/**/*",
+    "target/types/**/*"
+  ]
 }
