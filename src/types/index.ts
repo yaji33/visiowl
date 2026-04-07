@@ -12,10 +12,10 @@ export interface Signal {
   category: SignalCategory;
   label: string;
   description: string;
-  value: number;
+  value: number;        
   contribution: number; 
   maxContribution: number;
-  weight: number; 
+  weight: number;     
 }
 
 export interface Badge {
@@ -55,7 +55,6 @@ export interface ScoreResponse {
   levelUpActions: LevelUpAction[];
   lastRefreshed: string;
   cached: boolean;
-  createdAt: number;
 }
 
 export type SpaceType = "open" | "verified";
