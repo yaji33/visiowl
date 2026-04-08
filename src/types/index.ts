@@ -12,10 +12,10 @@ export interface Signal {
   category: SignalCategory;
   label: string;
   description: string;
-  value: number;        
-  contribution: number; 
+  value: number;
+  contribution: number;
   maxContribution: number;
-  weight: number;     
+  weight: number;
 }
 
 export interface Badge {
@@ -54,6 +54,7 @@ export interface ScoreResponse {
   badges: Badge[];
   levelUpActions: LevelUpAction[];
   lastRefreshed: string;
+  createdAt: number;
   cached: boolean;
 }
 

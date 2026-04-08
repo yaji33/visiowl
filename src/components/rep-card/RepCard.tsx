@@ -48,22 +48,25 @@ function Skeleton() {
   );
 }
 
-interface RepCardProps {
-  wallet: WalletProfile;
-  variant?: "full" | "skeleton";
-  animate?: boolean;
-  className?: string;
-  onRefresh?: () => void;
-}
+type RepCardProps =
+  | {
+      variant: "skeleton";
+      wallet?: WalletProfile;
+      animate?: boolean;
+      className?: string;
+      onRefresh?: () => void;
+    }
+  | {
+      variant?: "full";
+      wallet: WalletProfile;
+      animate?: boolean;
+      className?: string;
+      onRefresh?: () => void;
+    };
 
-export function RepCard({
-  wallet,
-  variant = "full",
-  animate = true,
-  className,
-  onRefresh,
-}: RepCardProps) {
-  if (variant === "skeleton") return <Skeleton />;
+export function RepCard(props: RepCardProps) {
+  if (props.variant === "skeleton") return <Skeleton />;
+  const { wallet, animate = true, className, onRefresh } = props;
   const shareUrl = `${process.env["NEXT_PUBLIC_APP_URL"] ?? ""}/wallet/${wallet.address}`;
   return (
     <div className={cn("card-surface w-full max-w-[560px]", className)}>
