@@ -1,0 +1,36 @@
+import { NextResponse } from "next/server";
+import { CreateSpaceSchema } from "@/lib/validators";
+import { pushSpace, getSpaces } from "@/lib/space-store";
+import { shortenAddress } from "@/lib/utils";
+import type { Space } from "@/types";
+
+export async function GET() {
+  return NextResponse.json(getSpaces());
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as unknown;
+    const parsed = CreateSpaceSchema.safeParse(body);
+    if (!parsed.success)
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+
+    // TODO: Write Space PDA to Solana via Anchor (create_space instruction).
+    // getSpacePda(operatorPublicKey, nameSeedPublicKey) in src/lib/solana/program.ts
+    // is ready — wire it here once the program is deployed to devnet.
+    const id = crypto.randomUUID();
+    const space: Space = {
+      id,
+      ...parsed.data,
+      operatorShortAddress: shortenAddress(parsed.data.operatorAddress),
+      inviteUrl: `${process.env["NEXT_PUBLIC_APP_URL"] ?? ""}/space/${id}`,
+      createdAt: new Date().toISOString(),
+      memberCount: 0,
+    };
+
+    pushSpace(space);
+    return NextResponse.json(space, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
