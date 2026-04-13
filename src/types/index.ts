@@ -20,6 +20,10 @@ export interface Signal {
 
 export interface Badge {
   label: string;
+  imageSlug?: string;
+  signal?: string;
+  tier?: string;
+  description?: string;
   earnedAt?: string;
 }
 
