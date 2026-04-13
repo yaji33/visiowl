@@ -1,9 +1,21 @@
 import type { Signal, Badge, LevelUpAction, ScoreResponse } from "@/types";
 import { getTier } from "@/lib/utils";
+import { getBadgeDef } from "@/lib/badges";
+
+function award(id: string): Badge {
+  const def = getBadgeDef(id);
+  return {
+    label: def?.label ?? id,
+    imageSlug: def?.imageSlug,
+    signal: def?.signal,
+    tier: def?.tier,
+    description: def?.description,
+  };
+}
 
 export interface RawWalletData {
   address: string;
-  createdAt: number; 
+  createdAt: number;
   stakingMonths: number;
   totalSolStaked: number;
   governanceVoteCount: number;
@@ -114,13 +126,30 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
   const tier = getTier(score);
 
   const badges: Badge[] = [
-    ...(data.stakingMonths >= 12 ? [{ label: "14-Month Staker" }] : []),
-    ...(data.governanceVoteCount >= 10 ? [{ label: "Realms Veteran" }] : []),
-    ...(data.defiProtocolCount >= 5 ? [{ label: "DeFi Explorer" }] : []),
-    ...(data.nftHeldCount >= 3 && data.maxNftHoldMonths >= 6 ? [{ label: "NFT Diplomat" }] : []),
-    ...(data.distinctDaos >= 3 ? [{ label: "DAO Contributor" }] : []),
-    ...(data.governanceVoteCount >= 25 ? [{ label: "Power Voter" }] : []),
-    ...(ageMonths >= 24 ? [{ label: "Early Adopter" }] : []),
+    ...(ageMonths >= 24
+      ? [award("early-adopter")]
+      : ageMonths >= 12
+        ? [award("established-wallet")]
+        : ageMonths >= 6
+          ? [award("early-wallet")]
+          : []),
+    ...(data.stakingMonths >= 12
+      ? [award("diamond-staker")]
+      : data.stakingMonths >= 3
+        ? [award("staker")]
+        : []),
+    ...(data.nftHeldCount >= 3 && data.maxNftHoldMonths >= 6
+      ? [award("nft-diplomat")]
+      : data.nftHeldCount >= 1
+        ? [award("nft-collector")]
+        : []),
+    ...(data.governanceVoteCount >= 25
+      ? [award("power-voter")]
+      : data.governanceVoteCount >= 10
+        ? [award("realms-veteran")]
+        : []),
+    ...(data.distinctDaos >= 3 ? [award("dao-contributor")] : []),
+    ...(data.defiProtocolCount >= 5 ? [award("defi-explorer")] : []),
   ];
 
   const levelUpActions: LevelUpAction[] = [

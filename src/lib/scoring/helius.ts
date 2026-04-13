@@ -4,11 +4,10 @@ const HELIUS_API_KEY = process.env.HELIUS_API_KEY ?? "";
 const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 const HELIUS_API = `https://api.helius.xyz/v0`;
 
-// Known program IDs for instruction-level DeFi detection (Enhanced Transactions API)
 const DEFI_PROGRAMS = new Set([
-  // Aggregators 
+  // Aggregators
   "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4", // Jupiter Aggregator v6
-  // AMMs / DEXes 
+  // AMMs / DEXes
   "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", // Raydium AMM v4
   "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK", // Raydium CPMM
   "RVKd61ztZW9GUwhRbbLoYVRE5Xf1B2tVscKqwZqXgEr", // Raydium CLMM
@@ -17,14 +16,14 @@ const DEFI_PROGRAMS = new Set([
   "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo", // Meteora DLMM
   "Eo7WjKq67rjJQDd81yD4uyWABBaI6SgaA4v5fGZeFGf", // Meteora Dynamic Pools
   "PhoeNiXZ8ByJGLkxNfZRnkUfjvmuYqLR89jjFHGqdXY", // Phoenix DEX
-  // Lending / Money Markets 
+  // Lending / Money Markets
   "KaMNeReftLhJoefgd3apEoHZo4Uf1aTiZqTMfSdtEgr", // Kamino Lending
   "MFv2hWf31Z9kbCa1snEPdcgp168vLLAael5V6fvGrXg", // MarginFi v2
   "So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo", // Solend
-  // Liquid Staking 
+  // Liquid Staking
   "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD", // Marinade Finance
   "SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy", // Solana Stake Pool program
-  // NFT / Trading 
+  // NFT / Trading
   "TSWAPaqyCSx2KABk68Shruf4rp7CxcAi9Pu7KHQg5aB", // Tensor Swap
 ]);
 
@@ -35,16 +34,14 @@ const GOVERNANCE_PROGRAMS = new Set([
   "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf", // Squads Multisig v4
 ]);
 
-// Known DeFi protocol token mints — RPC-native fallback.
-// Holding these tokens is on-chain proof of DeFi participation,
-// detectable via getTokenAccountsByOwner even when the Enhanced API is unavailable.
+
 const DEFI_TOKEN_MINTS = new Set([
-  // Liquid Staking Tokens 
+  // Liquid Staking Tokens
   "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", // mSOL   — Marinade
   "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", // jitoSOL — Jito
   "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", // bSOL   — BlazeStake
   "7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj", // stSOL  — Lido (deprecated but holders remain)
-  // DEX Governance / Utility Tokens 
+  // DEX Governance / Utility Tokens
   "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R", // RAY   — Raydium
   "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN", // JUP   — Jupiter
   "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4", // JLP   — Jupiter Liquidity Provider token
@@ -167,6 +164,47 @@ const DEFI_POSITION_PROGRAMS: Array<{ program: string; offset: number; label: st
   { program: "MFv2hWf31Z9kbCa1snEPdcgp168vLLAael5V6fvGrXg", offset: 8, label: "MarginFi" }, // discriminator[8] = authority at 8
 ];
 
+async function getDasNftCount(address: string): Promise<number> {
+  try {
+    const res = await fetch(HELIUS_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "get-assets",
+        method: "getAssetsByOwner",
+        params: {
+          ownerAddress: address,
+          page: 1,
+          limit: 1000,
+          displayOptions: { showFungible: false, showNativeBalance: false },
+        },
+      }),
+    });
+    if (!res.ok) return 0;
+    const json = (await res.json()) as {
+      result?: {
+        total: number;
+        items: Array<{
+          interface: string;
+          creators?: Array<{ address: string; verified: boolean }>;
+          grouping?: Array<{ group_key: string; group_value: string; verified?: boolean }>;
+        }>;
+      };
+    };
+    return (json.result?.items ?? []).filter((item) => {
+      if (["FungibleToken", "FungibleAsset"].includes(item.interface)) return false;
+      // Exclude spam/airdrop NFTs — require at least one verified creator or verified collection.
+      const hasVerifiedCreator = item.creators?.some((c) => c.verified) ?? false;
+      const hasVerifiedCollection =
+        item.grouping?.some((g) => g.group_key === "collection" && g.verified) ?? false;
+      return hasVerifiedCreator || hasVerifiedCollection;
+    }).length;
+  } catch {
+    return 0;
+  }
+}
+
 async function getDeFiPositionCount(address: string): Promise<number> {
   const results = await Promise.allSettled(
     DEFI_POSITION_PROGRAMS.map(async ({ program, offset }) => {
@@ -174,7 +212,7 @@ async function getDeFiPositionCount(address: string): Promise<number> {
         program,
         {
           filters: [{ memcmp: { offset, bytes: address } }],
-          dataSlice: { offset: 0, length: 0 }, 
+          dataSlice: { offset: 0, length: 0 },
           encoding: "base64",
         },
       ])) as Array<unknown>;
@@ -185,22 +223,23 @@ async function getDeFiPositionCount(address: string): Promise<number> {
 }
 
 export async function fetchWalletData(address: string): Promise<RawWalletData> {
-  const [sigData, txs, tokenAccounts, stakingAccounts, defiPositionCount] = await Promise.all([
-    getSignatureData(address),
-    getEnhancedTransactions(address), 
-    getTokenAccounts(address),
-    getStakingAccounts(address),
-    getDeFiPositionCount(address),
-  ]);
+  const [sigData, txs, tokenAccounts, stakingAccounts, defiPositionCount, dasNftCount] =
+    await Promise.all([
+      getSignatureData(address),
+      getEnhancedTransactions(address),
+      getTokenAccounts(address),
+      getStakingAccounts(address),
+      getDeFiPositionCount(address),
+      getDasNftCount(address),
+    ]);
   const { createdAt, totalTxCount } = sigData;
 
-
-  const currentEpoch = 750; 
+  const currentEpoch = 750;
   const stakingMonths =
     stakingAccounts.length > 0
       ? Math.max(
-          ...stakingAccounts.map(
-            (s) => Math.floor(((currentEpoch - s.activationEpoch) * 2.5) / 30), 
+          ...stakingAccounts.map((s) =>
+            Math.floor(((currentEpoch - s.activationEpoch) * 2.5) / 30),
           ),
         )
       : 0;
@@ -223,17 +262,29 @@ export async function fetchWalletData(address: string): Promise<RawWalletData> {
   }
 
   const defiProgramCount = [...programsSeen].filter((p) => DEFI_PROGRAMS.has(p)).length;
-
-  // Fallback: count distinct DeFi token mints held (always available via RPC getTokenAccountsByOwner).
-  // Each distinct mint maps to one protocol — mSOL=Marinade, jitoSOL=Jito, RAY=Raydium, etc.
   const defiMintProtocols = new Set(
     tokenAccounts.filter((t) => DEFI_TOKEN_MINTS.has(t.mint)).map((t) => t.mint),
   );
 
   const defiProtocolCount = Math.max(defiProgramCount, defiMintProtocols.size, defiPositionCount);
-  const nftAccounts = tokenAccounts.filter((t) => t.decimals === 0 && t.amount === 1);
-  const nftHeldCount = nftAccounts.length;
-  const maxNftHoldMonths = nftHeldCount > 0 ? 6 : 0;
+  const splNftCount = tokenAccounts.filter((t) => t.decimals === 0 && t.amount === 1).length;
+  const nftHeldCount = Math.max(dasNftCount, splNftCount);
+
+  const NFT_TX_TYPES = new Set([
+    "COMPRESSED_NFT_MINT",
+    "NFT_MINT",
+    "NFT_SALE",
+    "NFT_LISTING",
+    "NFT_BID",
+    "TRANSFER",
+  ]);
+  
+  const nftTxTimestamps = txs.filter((tx) => NFT_TX_TYPES.has(tx.type)).map((tx) => tx.timestamp);
+  const oldestNftTs = nftTxTimestamps.length > 0 ? Math.min(...nftTxTimestamps) : null;
+  const maxNftHoldMonths =
+    nftHeldCount > 0
+      ? Math.max(1, Math.floor((Date.now() / 1000 - (oldestNftTs ?? createdAt)) / (30 * 24 * 3600)))
+      : 0;
 
   return {
     address,
@@ -246,7 +297,7 @@ export async function fetchWalletData(address: string): Promise<RawWalletData> {
     defiTxCount,
     nftHeldCount,
     maxNftHoldMonths,
-    totalTxCount, 
-    distinctProgramCount: programsSeen.size, 
+    totalTxCount,
+    distinctProgramCount: programsSeen.size,
   };
 }
