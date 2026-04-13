@@ -1,10 +1,11 @@
 "use client";
 import { useState, use } from "react";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { toast } from "sonner";
 import { AccessGate } from "@/components/spaces/AccessGate";
-import { ThresholdPicker } from "@/components/spaces/ThresholdPicker";
-import { MOCK_SPACES } from "@/lib/mock-data";
+import { useSpace } from "@/lib/hooks/useSpace";
 import { useRepScore } from "@/lib/hooks/useRepScore";
 import type { AccessStatus } from "@/types";
 
@@ -14,57 +15,72 @@ interface Props {
 
 export default function SpacePage({ params }: Props) {
   const { id } = use(params);
-  const space = MOCK_SPACES[id];
+  const { data: space, isPending, isError } = useSpace(id);
   const { publicKey } = useWallet();
   const { setVisible } = useWalletModal();
-  const [status, setStatus] = useState<AccessStatus | null>(null);
-  const [threshold, setThreshold] = useState(300);
+  const SESSION_KEY = `space-access-${id}`;
+  const [status, setStatus] = useState<AccessStatus | null>(() => {
+    if (typeof window === "undefined") return null;
+    return (sessionStorage.getItem(SESSION_KEY) as AccessStatus) ?? null;
+  });
 
   const { data: scoreData } = useRepScore(publicKey?.toBase58() ?? null);
   const walletScore = scoreData?.score ?? 0;
+
+  const isOperator = !!publicKey && space?.operatorAddress === publicKey.toBase58();
+
+  const persist = (s: AccessStatus) => {
+    setStatus(s);
+    if (s === "granted") sessionStorage.setItem(SESSION_KEY, s);
+  };
+
+  const copyInviteLink = () => {
+    const url = `${window.location.origin}/space/${id}`;
+    void navigator.clipboard
+      .writeText(url)
+      .then(() => toast.success("Invite link copied!", { description: url }));
+  };
 
   const checkAccess = () => {
     if (!publicKey) {
       setVisible(true);
       return;
     }
-    setStatus("checking");
-    setTimeout(
-      () => setStatus(walletScore >= (space?.minScore ?? threshold) ? "granted" : "denied"),
-      2000,
-    );
+    if (!space) return;
+    persist("checking");
+    setTimeout(() => persist(walletScore >= space.minScore ? "granted" : "denied"), 2000);
   };
 
-  if (!space)
+  const handleEnter = () => {
+    toast.success(`Welcome to ${space?.name ?? "the space"}!`, {
+      description: "Your access is verified.",
+    });
+  };
+
+  if (isPending) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <div className="card-surface p-8">
-          <ThresholdPicker value={threshold} onChange={setThreshold} />
-          <div className="mt-6 text-center">
-            <h2 className="font-serif-display text-2xl font-light text-[hsl(var(--foreground))]">
-              Create a Verified Space
-            </h2>
-            <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-              Set a minimum Rep Score to gate your community.
-            </p>
-            <button
-              onClick={checkAccess}
-              className="mt-6 h-10 bg-[hsl(var(--primary))] px-6 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
-            >
-              {publicKey ? "Demo Access Check" : "Connect Wallet"}
-            </button>
-          </div>
-          {status && (
-            <AccessGate
-              status={status}
-              spaceName="Demo Space"
-              score={walletScore}
-              required={threshold}
-            />
-          )}
+        <div className="card-surface animate-pulse p-8">
+          <div className="mx-auto h-4 w-24 rounded bg-[hsl(var(--secondary))]" />
+          <div className="mx-auto mt-4 h-8 w-48 rounded bg-[hsl(var(--secondary))]" />
         </div>
       </div>
     );
+  }
+
+  if (isError || !space) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-16 text-center">
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">Space not found.</p>
+        <Link
+          href="/spaces"
+          className="mt-4 inline-block text-xs underline underline-offset-2 transition-colors hover:text-[hsl(var(--foreground))]"
+        >
+          Browse Spaces
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -85,23 +101,52 @@ export default function SpacePage({ params }: Props) {
             </p>
           )}
         </div>
-        {!status && (
-          <div className="mt-8 text-center">
-            <button
-              onClick={checkAccess}
-              className="h-10 bg-[hsl(var(--primary))] px-6 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
-            >
-              {publicKey ? "Verify & Enter" : "Connect Wallet"}
-            </button>
+        {isOperator ? (
+          <div className="mt-8 space-y-3 border-t border-[hsl(var(--border-light))] pt-6">
+            <p className="text-center text-xs text-[hsl(var(--muted-foreground))]">
+              You created this space.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={copyInviteLink}
+                className="h-9 rounded-sm border border-[hsl(var(--border))] px-4 text-xs text-[hsl(var(--foreground))] transition-colors hover:border-[hsl(var(--accent))]"
+              >
+                Copy Invite Link
+              </button>
+              <Link
+                href="/spaces"
+                className="flex h-9 items-center rounded-sm px-4 text-xs text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
+              >
+                Browse Spaces
+              </Link>
+            </div>
+            <p className="text-center text-[10px] text-[hsl(var(--muted-foreground))]">
+              On-chain member verification enforced once the Solana program is deployed.
+            </p>
           </div>
-        )}
-        {status && (
-          <AccessGate
-            status={status}
-            spaceName={space.name}
-            score={walletScore}
-            required={space.minScore}
-          />
+        ) : (
+          <>
+            {!status && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={checkAccess}
+                  className="h-10 bg-[hsl(var(--primary))] px-6 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
+                >
+                  {publicKey ? "Verify & Enter" : "Connect Wallet"}
+                </button>
+              </div>
+            )}
+            {status && (
+              <AccessGate
+                status={status}
+                spaceName={space.name}
+                score={walletScore}
+                required={space.minScore}
+                onEnter={handleEnter}
+                walletAddress={publicKey?.toBase58()}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

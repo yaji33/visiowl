@@ -16,7 +16,7 @@ export function Nav() {
       href={href}
       className={cn(
         "text-xs text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]",
-        path === href && "text-[hsl(var(--foreground))]",
+        (href === "/" ? path === href : path.startsWith(href)) && "text-[hsl(var(--foreground))]",
       )}
     >
       {label}
@@ -40,7 +40,7 @@ export function Nav() {
         </Link>
         <nav className="flex items-center gap-6">
           {navLink("/activity", "Activity")}
-          {navLink("/space/superteam-core", "Create Space")}
+          {navLink("/spaces", "Spaces")}
           {publicKey ? (
             <div className="flex items-center gap-4">
               <span className="address-mono text-xs text-[hsl(var(--foreground))]">
