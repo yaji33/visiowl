@@ -1,0 +1,737 @@
+{
+  "address": "2PKNewSyFjQ3DHfo638JgL7HBVBSZvcnVNahGzMm5fTC",
+  "metadata": {
+    "name": "visiowl",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Visiowl — Solana on-chain reputation layer"
+  },
+  "instructions": [
+    {
+      "name": "award_badge",
+      "discriminator": [
+        163,
+        255,
+        101,
+        118,
+        140,
+        5,
+        179,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "rep_card",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  45,
+                  99,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "rep_card.authority",
+                "account": "RepCard"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score_authority",
+          "writable": true,
+          "signer": true,
+          "address": "dSwoDETsYGdVtuXCGxNFx9gBCgThB1DRmbH35j4GE1p"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "label",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "create_space",
+      "discriminator": [
+        69,
+        22,
+        245,
+        34,
+        33,
+        119,
+        100,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "space_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  112,
+                  97,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              },
+              {
+                "kind": "account",
+                "path": "name_seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name_seed"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "min_score",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "initialize_rep_card",
+      "discriminator": [
+        147,
+        185,
+        97,
+        219,
+        18,
+        165,
+        40,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "rep_card",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  45,
+                  99,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_visibility",
+      "discriminator": [
+        182,
+        23,
+        73,
+        166,
+        255,
+        234,
+        36,
+        196
+      ],
+      "accounts": [
+        {
+          "name": "rep_card",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  45,
+                  99,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "rep_card"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "is_public",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_score",
+      "discriminator": [
+        188,
+        226,
+        238,
+        41,
+        14,
+        241,
+        105,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "rep_card",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  45,
+                  99,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "rep_card.authority",
+                "account": "RepCard"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score_authority",
+          "signer": true,
+          "address": "dSwoDETsYGdVtuXCGxNFx9gBCgThB1DRmbH35j4GE1p"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_score",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "verify_access",
+      "discriminator": [
+        198,
+        35,
+        119,
+        166,
+        140,
+        214,
+        241,
+        222
+      ],
+      "accounts": [
+        {
+          "name": "rep_card",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  45,
+                  99,
+                  97,
+                  114,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "rep_card"
+          ]
+        },
+        {
+          "name": "space",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "RepCard",
+      "discriminator": [
+        199,
+        70,
+        11,
+        34,
+        255,
+        118,
+        105,
+        75
+      ]
+    },
+    {
+      "name": "Space",
+      "discriminator": [
+        120,
+        45,
+        163,
+        4,
+        216,
+        104,
+        38,
+        215
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AccessVerified",
+      "discriminator": [
+        39,
+        189,
+        54,
+        21,
+        173,
+        37,
+        247,
+        202
+      ]
+    },
+    {
+      "name": "BadgeAwarded",
+      "discriminator": [
+        153,
+        87,
+        158,
+        115,
+        220,
+        200,
+        52,
+        1
+      ]
+    },
+    {
+      "name": "RepCardInitialized",
+      "discriminator": [
+        85,
+        195,
+        150,
+        1,
+        165,
+        54,
+        225,
+        19
+      ]
+    },
+    {
+      "name": "ScoreUpdated",
+      "discriminator": [
+        175,
+        144,
+        206,
+        62,
+        108,
+        213,
+        230,
+        183
+      ]
+    },
+    {
+      "name": "SpaceCreated",
+      "discriminator": [
+        237,
+        192,
+        36,
+        66,
+        204,
+        208,
+        90,
+        47
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ScoreOutOfRange",
+      "msg": "Rep Score must be between 0 and 1000"
+    },
+    {
+      "code": 6001,
+      "name": "BadgeLabelTooLong",
+      "msg": "Badge label exceeds 32 characters"
+    },
+    {
+      "code": 6002,
+      "name": "TooManyBadges",
+      "msg": "Wallet has reached the maximum badge limit (16)"
+    },
+    {
+      "code": 6003,
+      "name": "DuplicateBadge",
+      "msg": "This badge has already been awarded to this wallet"
+    },
+    {
+      "code": 6004,
+      "name": "SpaceNameTooLong",
+      "msg": "Space name exceeds 64 characters"
+    },
+    {
+      "code": 6005,
+      "name": "SpaceDescTooLong",
+      "msg": "Space description exceeds 256 characters"
+    },
+    {
+      "code": 6006,
+      "name": "InsufficientScore",
+      "msg": "Wallet Rep Score does not meet the Space's minimum requirement"
+    },
+    {
+      "code": 6007,
+      "name": "SpaceFull",
+      "msg": "Space has reached the maximum member limit (1000)"
+    },
+    {
+      "code": 6008,
+      "name": "AlreadyMember",
+      "msg": "This wallet is already a verified member of this Space"
+    }
+  ],
+  "types": [
+    {
+      "name": "AccessVerified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "space",
+            "type": "pubkey"
+          },
+          {
+            "name": "score",
+            "type": "u16"
+          },
+          {
+            "name": "required",
+            "type": "u16"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Badge",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "name": "awarded_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BadgeAwarded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RepCard",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "score",
+            "type": "u16"
+          },
+          {
+            "name": "tier",
+            "type": {
+              "defined": {
+                "name": "Tier"
+              }
+            }
+          },
+          {
+            "name": "badges",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "Badge"
+                }
+              }
+            }
+          },
+          {
+            "name": "last_updated",
+            "type": "i64"
+          },
+          {
+            "name": "is_public",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RepCardInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_score",
+            "type": "u16"
+          },
+          {
+            "name": "new_score",
+            "type": "u16"
+          },
+          {
+            "name": "tier",
+            "type": {
+              "defined": {
+                "name": "Tier"
+              }
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Space",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "min_score",
+            "type": "u16"
+          },
+          {
+            "name": "member_count",
+            "type": "u32"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "members",
+            "type": {
+              "vec": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpaceCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "min_score",
+            "type": "u16"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tier",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "EarlyWallet"
+          },
+          {
+            "name": "ActiveMember"
+          },
+          {
+            "name": "Established"
+          },
+          {
+            "name": "PowerUser"
+          },
+          {
+            "name": "OG"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -3,3 +3,4 @@ pub const MAX_BADGE_LABEL: usize = 32;
 pub const MAX_SPACE_NAME: usize = 64;
 pub const MAX_SPACE_DESC: usize = 256;
 pub const MAX_SCORE: u16 = 1000;
+pub const MAX_MEMBERS: usize = 1000;

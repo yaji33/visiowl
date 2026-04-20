@@ -16,4 +16,8 @@ pub enum VisiowlError {
     SpaceDescTooLong,
     #[msg("Wallet Rep Score does not meet the Space's minimum requirement")]
     InsufficientScore,
+    #[msg("Space has reached the maximum member limit (1000)")]
+    SpaceFull,
+    #[msg("This wallet is already a verified member of this Space")]
+    AlreadyMember,
 }

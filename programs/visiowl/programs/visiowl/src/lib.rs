@@ -132,17 +132,54 @@ pub mod visiowl {
     }
 
     pub fn verify_access(ctx: Context<VerifyAccess>) -> Result<()> {
-        let rep_card = &ctx.accounts.rep_card;
-        let space = &ctx.accounts.space;
+        let authority_key = ctx.accounts.authority.key();
+        let space_key = ctx.accounts.space.key();
+
         require!(
-            rep_card.score >= space.min_score,
+            ctx.accounts.rep_card.score >= ctx.accounts.space.min_score,
             VisiowlError::InsufficientScore
         );
+        require!(
+            (ctx.accounts.space.member_count as usize) < MAX_MEMBERS,
+            VisiowlError::SpaceFull
+        );
+        require!(
+            !ctx.accounts.space.members.contains(&authority_key),
+            VisiowlError::AlreadyMember
+        );
+
+        let score     = ctx.accounts.rep_card.score;
+        let min_score = ctx.accounts.space.min_score;
+        let new_len   = Space::LEN + (ctx.accounts.space.members.len() + 1) * 32;
+
+        let rent = Rent::get()?;
+        let new_min_balance = rent.minimum_balance(new_len);
+        let current_balance = ctx.accounts.space.to_account_info().lamports();
+
+        if new_min_balance > current_balance {
+            anchor_lang::system_program::transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    anchor_lang::system_program::Transfer {
+                        from: ctx.accounts.authority.to_account_info(),
+                        to:   ctx.accounts.space.to_account_info(),
+                    },
+                ),
+                new_min_balance - current_balance,
+            )?;
+        }
+
+        ctx.accounts.space.to_account_info().resize(new_len)?;
+
+        let space = &mut ctx.accounts.space;
+        space.members.push(authority_key);
+        space.member_count += 1;
+
         emit!(AccessVerified {
-            authority: rep_card.authority,
-            space: space.key(),
-            score: rep_card.score,
-            required: space.min_score,
+            authority: authority_key,
+            space:     space_key,
+            score,
+            required:  min_score,
             timestamp: Clock::get()?.unix_timestamp,
         });
         Ok(())
@@ -229,15 +266,19 @@ pub struct CreateSpace<'info> {
 #[derive(Accounts)]
 pub struct VerifyAccess<'info> {
     #[account(
-        seeds = [b"rep-card", rep_card.authority.as_ref()],
+        seeds = [b"rep-card", authority.key().as_ref()],
         bump = rep_card.bump,
         has_one = authority,
     )]
     pub rep_card: Account<'info, RepCard>,
 
+    #[account(mut)]
     pub authority: Signer<'info>,
 
+    #[account(mut)]
     pub space: Account<'info, Space>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
@@ -272,25 +313,27 @@ impl RepCard {
 
 #[account]
 pub struct Space {
-    pub operator:     Pubkey,  
-    pub name:         String,  
-    pub description:  String,  
-    pub min_score:    u16,     
-    pub member_count: u32,    
-    pub created_at:   i64,    
-    pub bump:         u8,    
+    pub operator:     Pubkey,
+    pub name:         String,
+    pub description:  String,
+    pub min_score:    u16,
+    pub member_count: u32,
+    pub created_at:   i64,
+    pub bump:         u8,
+    pub members:      Vec<Pubkey>,
 }
 
 impl Space {
     pub const LEN: usize =
-        8                    
-        + 32               
-        + 4 + MAX_SPACE_NAME
-        + 4 + MAX_SPACE_DESC
-        + 2                 
-        + 4                  
-        + 8                 
-        + 1;                 
+        8                  
+        + 32                
+        + 4 + MAX_SPACE_NAME  
+        + 4 + MAX_SPACE_DESC  
+        + 2                   
+        + 4                   
+        + 8                
+        + 1                   
+        + 4;                  
 }
 
 

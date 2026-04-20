@@ -60,9 +60,7 @@ describe("visiowl", () => {
     await program.methods
       .initializeRepCard()
       .accounts({
-        repCard: repCardPDA,
         authority: wallet.publicKey,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -79,9 +77,7 @@ describe("visiowl", () => {
       await program.methods
         .initializeRepCard()
         .accounts({
-          repCard: repCardPDA,
           authority: wallet.publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .rpc();
       assert.fail("Should have thrown");
@@ -157,7 +153,6 @@ describe("visiowl", () => {
     await program.methods
       .setVisibility(false)
       .accounts({
-        repCard: repCardPDA,
         authority: wallet.publicKey,
       })
       .rpc();
@@ -170,7 +165,6 @@ describe("visiowl", () => {
     await program.methods
       .setVisibility(true)
       .accounts({
-        repCard: repCardPDA,
         authority: wallet.publicKey,
       })
       .rpc();
@@ -186,7 +180,6 @@ describe("visiowl", () => {
       await program.methods
         .setVisibility(false)
         .accounts({
-          repCard: repCardPDA,
           authority: rogue.publicKey,
         })
         .signers([rogue])
@@ -290,10 +283,8 @@ describe("visiowl", () => {
     await program.methods
       .createSpace("OG Founders Club", "For verified OGs only", 750)
       .accounts({
-        spaceAccount: spacePDA,
         nameSeed: nameSeed.publicKey,
         operator: wallet.publicKey,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -310,10 +301,8 @@ describe("visiowl", () => {
     await program.methods
       .createSpace("Space B", "Second space", 100)
       .accounts({
-        spaceAccount: pda2,
         nameSeed: seed2.publicKey,
         operator: wallet.publicKey,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -328,10 +317,8 @@ describe("visiowl", () => {
       await program.methods
         .createSpace("X".repeat(65), "desc", 100)
         .accounts({
-          spaceAccount: spacePda(wallet.publicKey, badSeed.publicKey, program.programId),
           nameSeed: badSeed.publicKey,
           operator: wallet.publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .rpc();
       assert.fail("Should have thrown");
@@ -346,10 +333,8 @@ describe("visiowl", () => {
       await program.methods
         .createSpace("Test", "desc", 1001)
         .accounts({
-          spaceAccount: spacePda(wallet.publicKey, badSeed.publicKey, program.programId),
           nameSeed: badSeed.publicKey,
           operator: wallet.publicKey,
-          systemProgram: SystemProgram.programId,
         })
         .rpc();
       assert.fail("Should have thrown");
@@ -358,36 +343,54 @@ describe("visiowl", () => {
     }
   });
 
-  it("grants access when score meets threshold", async () => {
-    // Wallet score is 847, space requires 750 — should pass
+  it("grants access when score meets threshold — writes member on-chain", async () => {
     await program.methods
       .verifyAccess()
       .accounts({
-        repCard: repCardPDA,
         authority: wallet.publicKey,
         space: spacePDA,
       })
       .rpc();
+
+    const space = await program.account.space.fetch(spacePDA);
+    assert.equal(space.memberCount, 1);
+    assert.equal(space.members.length, 1);
+    assert.equal(space.members[0]?.toBase58(), wallet.publicKey.toBase58());
+  });
+
+  it("rejects duplicate verify_access (AlreadyMember)", async () => {
+    try {
+      await program.methods
+        .verifyAccess()
+        .accounts({
+          authority: wallet.publicKey,
+          space: spacePDA,
+        })
+        .rpc();
+      assert.fail("Should have thrown");
+    } catch (err: unknown) {
+      assert.include((err as AnchorError).error?.errorCode?.code, "AlreadyMember");
+    }
   });
 
   it("denies access when score is too low", async () => {
-    // Drop score below the space threshold
+    const highSeed = Keypair.generate();
+    const highSpacePDA = spacePda(wallet.publicKey, highSeed.publicKey, program.programId);
+
     await program.methods
-      .updateScore(100)
+      .createSpace("Elite Only", "Requires 900 points", 900)
       .accounts({
-        repCard: repCardPDA,
-        scoreAuthority: scoreAuthority.publicKey,
+        nameSeed: highSeed.publicKey,
+        operator: wallet.publicKey,
       })
-      .signers([scoreAuthority])
       .rpc();
 
     try {
       await program.methods
         .verifyAccess()
         .accounts({
-          repCard: repCardPDA,
           authority: wallet.publicKey,
-          space: spacePDA,
+          space: highSpacePDA,
         })
         .rpc();
       assert.fail("Should have thrown");
@@ -412,10 +415,8 @@ describe("visiowl", () => {
     await program.methods
       .createSpace("Low Bar", "Requires 1 point", 1)
       .accounts({
-        spaceAccount: lowSpacePDA,
         nameSeed: lowSeed.publicKey,
         operator: wallet.publicKey,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -423,7 +424,6 @@ describe("visiowl", () => {
       await program.methods
         .verifyAccess()
         .accounts({
-          repCard: repCardPDA,
           authority: wallet.publicKey,
           space: lowSpacePDA,
         })
