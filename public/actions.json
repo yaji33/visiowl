@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {
+      "pathPattern": "/wallet/**",
+      "apiPath": "/api/actions/wallet/**"
+    }
+  ]
+}

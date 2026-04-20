@@ -7,6 +7,9 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "Visiowl",
   description: "Every Solana wallet has a story. Visiowl makes it visible to everyone.",
+  icons: {
+    icon: "/images/favicon.png",
+  },
   openGraph: {
     title: "Visiowl",
     description: "Your on-chain reputation, made visible.",
