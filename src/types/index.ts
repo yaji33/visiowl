@@ -28,7 +28,7 @@ export interface Badge {
 }
 
 export interface LevelUpAction {
-  icon: "coins" | "vote" | "layers" | "image";
+  icon: "coins" | "vote" | "layers" | "image" | "users";
   action: string;
   detail: string;
   link: string;
@@ -76,6 +76,8 @@ export interface Space {
   createdAt: string;
   memberCount: number;
   inviteUrl: string;
+  gatedUrl?: string;
+  spacePda?: string;
 }
 
 export interface FeedEntry {

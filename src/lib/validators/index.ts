@@ -24,6 +24,8 @@ export const CreateSpaceSchema = z.object({
   type: z.enum(["open", "verified"]),
   minScore: z.number().int().min(0).max(1000),
   operatorAddress: SolanaAddressSchema,
+  gatedUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  spacePda: z.string().optional(),
 });
 
 export type ScoreRefreshInput = z.infer<typeof ScoreRefreshSchema>;

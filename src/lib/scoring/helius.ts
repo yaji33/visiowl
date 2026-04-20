@@ -27,13 +27,14 @@ const DEFI_PROGRAMS = new Set([
   "TSWAPaqyCSx2KABk68Shruf4rp7CxcAi9Pu7KHQg5aB", // Tensor Swap
 ]);
 
+const PUMPFUN_PROGRAM = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+
 // Known governance / DAO program IDs
 const GOVERNANCE_PROGRAMS = new Set([
   "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw", // SPL Governance (Realms)
   "SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu", // Squads Multisig v3
   "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf", // Squads Multisig v4
 ]);
-
 
 const DEFI_TOKEN_MINTS = new Set([
   // Liquid Staking Tokens
@@ -249,6 +250,7 @@ export async function fetchWalletData(address: string): Promise<RawWalletData> {
   const daosSeen = new Set<string>();
   let defiTxCount = 0;
   let governanceVoteCount = 0;
+  let pumpfunTxCount = 0;
 
   for (const tx of txs) {
     for (const ix of tx.instructions) {
@@ -258,6 +260,7 @@ export async function fetchWalletData(address: string): Promise<RawWalletData> {
         governanceVoteCount++;
         daosSeen.add(ix.programId);
       }
+      if (ix.programId === PUMPFUN_PROGRAM) pumpfunTxCount++;
     }
   }
 
@@ -278,7 +281,7 @@ export async function fetchWalletData(address: string): Promise<RawWalletData> {
     "NFT_BID",
     "TRANSFER",
   ]);
-  
+
   const nftTxTimestamps = txs.filter((tx) => NFT_TX_TYPES.has(tx.type)).map((tx) => tx.timestamp);
   const oldestNftTs = nftTxTimestamps.length > 0 ? Math.min(...nftTxTimestamps) : null;
   const maxNftHoldMonths =
@@ -299,5 +302,6 @@ export async function fetchWalletData(address: string): Promise<RawWalletData> {
     maxNftHoldMonths,
     totalTxCount,
     distinctProgramCount: programsSeen.size,
+    pumpfunTxCount,
   };
 }
