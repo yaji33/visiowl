@@ -100,6 +100,13 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     tier: "Active",
     description: "You've navigated five or more protocols.",
   },
+  {
+    id: "degen",
+    label: "Degen",
+    signal: "Transaction Volume",
+    tier: "Active",
+    description: "You've touched pump.fun. No judgment — it's part of the meta.",
+  },
 ];
 
 export function getBadgeDef(id: string): BadgeDefinition | undefined {

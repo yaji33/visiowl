@@ -26,6 +26,7 @@ export interface RawWalletData {
   maxNftHoldMonths: number;
   totalTxCount: number;
   distinctProgramCount: number;
+  pumpfunTxCount: number;
 }
 
 function norm(v: number, max: number): number {
@@ -150,17 +151,21 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
         : []),
     ...(data.distinctDaos >= 3 ? [award("dao-contributor")] : []),
     ...(data.defiProtocolCount >= 5 ? [award("defi-explorer")] : []),
+    ...(data.pumpfunTxCount > 0 ? [award("degen")] : []),
   ];
 
-  const levelUpActions: LevelUpAction[] = [
+  const scoreActions: LevelUpAction[] = [
     ...(raw.staking < 0.5
       ? [
           {
             icon: "coins" as const,
             action: data.stakingMonths === 0 ? "Start staking SOL" : "Stake SOL for longer",
-            detail: `Adds up to ${200 - Math.round(raw.staking * 200)} more points`,
-            link: "https://marinade.finance",
-            linkLabel: "Stake with Marinade →",
+            detail:
+              data.stakingMonths === 0
+                ? `Unlock up to ${200 - Math.round(raw.staking * 200)} points — try Marinade (mSOL), Jito (MEV rewards), BlazeStake (BLZE), or Sanctum`
+                : `Up to ${200 - Math.round(raw.staking * 200)} more points — Jito offers MEV-boosted liquid staking; BlazeStake rewards stakers with BLZE`,
+            link: data.stakingMonths === 0 ? "https://marinade.finance" : "https://jito.network",
+            linkLabel: data.stakingMonths === 0 ? "Stake with Marinade →" : "Boost with Jito →",
             pointsAvailable: 200 - Math.round(raw.staking * 200),
           },
         ]
@@ -169,8 +174,8 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
       ? [
           {
             icon: "vote" as const,
-            action: "Vote in governance proposals",
-            detail: `Adds up to ${Math.round((0.6 - raw.governance) * 200)} points`,
+            action: "Vote in Solana governance proposals",
+            detail: `Up to ${Math.round((0.6 - raw.governance) * 200)} points — Realms hosts Mango, Drift, Orca, and dozens of active DAOs`,
             link: "https://app.realms.today",
             linkLabel: "Vote on Realms →",
             pointsAvailable: Math.round((0.6 - raw.governance) * 200),
@@ -181,10 +186,16 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
       ? [
           {
             icon: "layers" as const,
-            action: "Explore a new DeFi protocol",
-            detail: "Adds up to 50 points to DeFi Activity",
-            link: "https://jup.ag",
-            linkLabel: "Try Jupiter →",
+            action:
+              data.defiProtocolCount === 0
+                ? "Try your first DeFi protocol"
+                : "Explore a new DeFi protocol",
+            detail:
+              data.defiProtocolCount === 0
+                ? "Adds up to 50 points — start with Jupiter for swaps, then explore Kamino (lending), Drift (perps), or Meteora (dynamic pools)"
+                : `Adds up to 50 points — try Kamino Finance (yield/lending), Drift Protocol (perps & vaults), or Meteora (DLMM pools)`,
+            link: data.defiProtocolCount === 0 ? "https://jup.ag" : "https://kamino.finance",
+            linkLabel: data.defiProtocolCount === 0 ? "Start with Jupiter →" : "Try Kamino →",
             pointsAvailable: 50,
           },
         ]
@@ -193,10 +204,13 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
       ? [
           {
             icon: "image" as const,
-            action: "Purchase and hold an NFT for 6+ months",
-            detail: "Long-held NFTs score well — even 1 NFT helps",
-            link: "https://magiceden.io",
-            linkLabel: "Browse Magic Eden →",
+            action: "Collect and hold an NFT for 6+ months",
+            detail:
+              data.nftHeldCount === 0
+                ? "Start free on DRiP Haus, or browse collections on Tensor for analytics-driven buying"
+                : "Long-held NFTs score highest — use Tensor's portfolio tools to track conviction holds",
+            link: data.nftHeldCount === 0 ? "https://drip.haus" : "https://tensor.trade",
+            linkLabel: data.nftHeldCount === 0 ? "Get free drops on DRiP →" : "Browse Tensor →",
             pointsAvailable: 60,
           },
         ]
@@ -204,6 +218,20 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
   ]
     .sort((a, b) => b.pointsAvailable - a.pointsAvailable)
     .slice(0, 3);
+
+  const communityActions: LevelUpAction[] = [
+    {
+      icon: "users" as const,
+      action: "Join the Superteam builder network",
+      detail:
+        "Bounties, grants, and ecosystem connections across Solana — open to any verified contributor",
+      link: "https://superteam.fun",
+      linkLabel: "Explore Superteam →",
+      pointsAvailable: 0,
+    },
+  ];
+
+  const levelUpActions: LevelUpAction[] = [...scoreActions, ...communityActions];
 
   return {
     address: data.address,
