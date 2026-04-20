@@ -1,12 +1,16 @@
 "use client";
 import { useState, use } from "react";
 import Link from "next/link";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { PublicKey } from "@solana/web3.js";
+import { AnchorError } from "@coral-xyz/anchor";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AccessGate } from "@/components/spaces/AccessGate";
 import { useSpace } from "@/lib/hooks/useSpace";
 import { useRepScore } from "@/lib/hooks/useRepScore";
+import { getProgram } from "@/lib/solana/program";
 import type { AccessStatus } from "@/types";
 
 interface Props {
@@ -17,12 +21,18 @@ export default function SpacePage({ params }: Props) {
   const { id } = use(params);
   const { data: space, isPending, isError } = useSpace(id);
   const { publicKey } = useWallet();
+  const anchorWallet = useAnchorWallet();
+  const { connection } = useConnection();
   const { setVisible } = useWalletModal();
-  const SESSION_KEY = `space-access-${id}`;
-  const [status, setStatus] = useState<AccessStatus | null>(() => {
-    if (typeof window === "undefined") return null;
-    return (sessionStorage.getItem(SESSION_KEY) as AccessStatus) ?? null;
-  });
+  const queryClient = useQueryClient();
+  const SESSION_KEY = publicKey ? `space-access-${id}-${publicKey.toBase58()}` : null;
+  const [prevKey, setPrevKey] = useState<string | null>(null);
+  const [status, setStatus] = useState<AccessStatus | null>(null);
+
+  if (SESSION_KEY !== prevKey) {
+    setPrevKey(SESSION_KEY);
+    setStatus(SESSION_KEY ? ((sessionStorage.getItem(SESSION_KEY) as AccessStatus) ?? null) : null);
+  }
 
   const { data: scoreData } = useRepScore(publicKey?.toBase58() ?? null);
   const walletScore = scoreData?.score ?? 0;
@@ -31,7 +41,7 @@ export default function SpacePage({ params }: Props) {
 
   const persist = (s: AccessStatus) => {
     setStatus(s);
-    if (s === "granted") sessionStorage.setItem(SESSION_KEY, s);
+    if (s === "granted" && SESSION_KEY) sessionStorage.setItem(SESSION_KEY, s);
   };
 
   const copyInviteLink = () => {
@@ -41,14 +51,45 @@ export default function SpacePage({ params }: Props) {
       .then(() => toast.success("Invite link copied!", { description: url }));
   };
 
-  const checkAccess = () => {
+  const incrementMemberCount = async () => {
+    await fetch(`/api/space/${id}`, { method: "PATCH" });
+    await queryClient.invalidateQueries({ queryKey: ["space", id] });
+    await queryClient.invalidateQueries({ queryKey: ["spaces"] });
+  };
+
+  const checkAccess = async () => {
     if (!publicKey) {
       setVisible(true);
       return;
     }
     if (!space) return;
     persist("checking");
-    setTimeout(() => persist(walletScore >= space.minScore ? "granted" : "denied"), 2000);
+
+    if (space.spacePda && anchorWallet) {
+      try {
+        const prog = getProgram(anchorWallet, connection);
+        await prog.methods
+          .verifyAccess()
+          .accounts({ space: new PublicKey(space.spacePda) })
+          .rpc();
+        await incrementMemberCount();
+        persist("granted");
+      } catch (err) {
+        const code = (err as AnchorError)?.error?.errorCode?.code;
+        if (code === "AlreadyMember") {
+          persist("granted");
+        } else if (code === "InsufficientScore" || code === "SpaceFull") {
+          persist("denied");
+        } else {
+          persist(walletScore >= space.minScore ? "granted" : "denied");
+        }
+      }
+    } else {
+      await new Promise((r) => setTimeout(r, 1500));
+      const result = walletScore >= space.minScore ? "granted" : "denied";
+      if (result === "granted") await incrementMemberCount();
+      persist(result);
+    }
   };
 
   const handleEnter = () => {
@@ -120,8 +161,28 @@ export default function SpacePage({ params }: Props) {
                 Browse Spaces
               </Link>
             </div>
+            {space.gatedUrl && (
+              <div className="rounded-sm border border-[hsl(var(--border))] px-4 py-3 text-center">
+                <p className="label-caps mb-1 text-[10px] text-[hsl(var(--muted-foreground))]">
+                  Gated Link
+                </p>
+                <a
+                  href={space.gatedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs break-all text-[hsl(var(--accent))] underline underline-offset-2 transition-opacity hover:opacity-80"
+                >
+                  {space.gatedUrl}
+                </a>
+                <p className="mt-1 text-[10px] text-[hsl(var(--muted-foreground))]">
+                  Only shown to verified members.
+                </p>
+              </div>
+            )}
             <p className="text-center text-[10px] text-[hsl(var(--muted-foreground))]">
-              On-chain member verification enforced once the Solana program is deployed.
+              {space.spacePda
+                ? `On-chain · ${space.memberCount} verified ${space.memberCount === 1 ? "member" : "members"}`
+                : "Off-chain access check · deploy program to enable on-chain verification"}
             </p>
           </div>
         ) : (
@@ -129,7 +190,7 @@ export default function SpacePage({ params }: Props) {
             {!status && (
               <div className="mt-8 text-center">
                 <button
-                  onClick={checkAccess}
+                  onClick={() => void checkAccess()}
                   className="h-10 bg-[hsl(var(--primary))] px-6 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
                 >
                   {publicKey ? "Verify & Enter" : "Connect Wallet"}
@@ -144,6 +205,7 @@ export default function SpacePage({ params }: Props) {
                 required={space.minScore}
                 onEnter={handleEnter}
                 walletAddress={publicKey?.toBase58()}
+                gatedUrl={space.gatedUrl}
               />
             )}
           </>

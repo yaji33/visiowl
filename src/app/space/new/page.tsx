@@ -2,15 +2,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { Keypair } from "@solana/web3.js";
 import { cn } from "@/lib/utils";
 import { useCreateSpace } from "@/lib/hooks/useCreateSpace";
 import { ThresholdPicker } from "@/components/spaces/ThresholdPicker";
+import { getProgram, getSpacePda } from "@/lib/solana/program";
 
 export default function CreateSpacePage() {
   const router = useRouter();
   const { publicKey } = useWallet();
+  const anchorWallet = useAnchorWallet();
+  const { connection } = useConnection();
   const { setVisible } = useWalletModal();
   const { mutate: createSpace, isPending, error } = useCreateSpace();
 
@@ -18,14 +22,32 @@ export default function CreateSpacePage() {
   const [description, setDesc] = useState("");
   const [type, setType] = useState<"open" | "verified">("verified");
   const [minScore, setMinScore] = useState(300);
+  const [gatedUrl, setGatedUrl] = useState("");
 
   const canSubmit = name.trim().length >= 3 && !!publicKey && !isPending;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!publicKey) {
       setVisible(true);
       return;
+    }
+
+    let spacePda: string | undefined;
+    if (anchorWallet) {
+      try {
+        const nameSeed = Keypair.generate();
+        const prog = getProgram(anchorWallet, connection);
+        await prog.methods
+          .createSpace(name.trim(), description.trim(), type === "open" ? 0 : minScore)
+          .accounts({ nameSeed: nameSeed.publicKey, operator: publicKey })
+          .signers([nameSeed])
+          .rpc();
+        const [pdaKey] = getSpacePda(publicKey, nameSeed.publicKey);
+        spacePda = pdaKey.toBase58();
+      } catch {
+
+      }
     }
 
     createSpace(
@@ -35,11 +57,15 @@ export default function CreateSpacePage() {
         type,
         minScore: type === "open" ? 0 : minScore,
         operatorAddress: publicKey.toBase58(),
+        gatedUrl: gatedUrl.trim() || undefined,
+        spacePda,
       },
       {
         onSuccess: (space) => {
           toast.success(`"${space.name}" created!`, {
-            description: "Your space is live. Share the link to invite members.",
+            description: space.spacePda
+              ? "Space anchored on-chain. Share the link to invite members."
+              : "Your space is live. Share the link to invite members.",
           });
           router.push(`/space/${space.id}`);
         },
@@ -123,6 +149,24 @@ export default function CreateSpacePage() {
             <ThresholdPicker value={minScore} onChange={setMinScore} />
           </div>
         )}
+
+        <div className="space-y-1.5">
+          <label className="label-caps text-[10px] text-[hsl(var(--muted-foreground))]">
+            Gated Link <span className="normal-case opacity-60">(optional)</span>
+          </label>
+          <input
+            type="url"
+            value={gatedUrl}
+            onChange={(e) => setGatedUrl(e.target.value)}
+            placeholder="https://discord.gg/your-private-invite"
+            className={cn(
+              "w-full rounded-sm border border-[hsl(var(--border))] bg-transparent px-3 py-2 text-sm text-[hsl(var(--foreground))] transition-colors placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--accent))] focus:outline-none",
+            )}
+          />
+          <p className="text-[10px] text-[hsl(var(--muted-foreground))]">
+            Only revealed to wallets that meet the Rep Score threshold.
+          </p>
+        </div>
 
         {error && <p className="text-xs text-red-500">{error.message}</p>}
 

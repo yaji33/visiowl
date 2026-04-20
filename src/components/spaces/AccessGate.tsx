@@ -8,6 +8,7 @@ interface AccessGateProps {
   required: number;
   onEnter?: () => void;
   walletAddress?: string;
+  gatedUrl?: string;
 }
 
 export function AccessGate({
@@ -17,6 +18,7 @@ export function AccessGate({
   required,
   onEnter,
   walletAddress,
+  gatedUrl,
 }: AccessGateProps) {
   if (status === "checking")
     return (
@@ -60,14 +62,26 @@ export function AccessGate({
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
           Your Rep Score: {score} · Required: {required}+
         </p>
-        <div className="space-y-2 text-center">
+        <div className="space-y-3 text-center">
           <p className="text-sm font-medium text-[hsl(var(--foreground))]">{spaceName}</p>
-          <button
-            onClick={onEnter}
-            className="text-sm text-[hsl(var(--foreground))] underline underline-offset-2 transition-opacity hover:opacity-70"
-          >
-            Enter Space
-          </button>
+          {gatedUrl ? (
+            <a
+              href={gatedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onEnter}
+              className="inline-flex items-center gap-1.5 rounded-sm bg-[hsl(var(--primary))] px-5 py-2.5 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
+            >
+              Enter Space
+            </a>
+          ) : (
+            <button
+              onClick={onEnter}
+              className="text-sm text-[hsl(var(--foreground))] underline underline-offset-2 transition-opacity hover:opacity-70"
+            >
+              Enter Space
+            </button>
+          )}
         </div>
         {walletAddress && (
           <a
