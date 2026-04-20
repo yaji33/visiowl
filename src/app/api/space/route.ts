@@ -5,7 +5,7 @@ import { shortenAddress } from "@/lib/utils";
 import type { Space } from "@/types";
 
 export async function GET() {
-  return NextResponse.json(getSpaces());
+  return NextResponse.json(await getSpaces());
 }
 
 export async function POST(req: Request) {
@@ -19,16 +19,19 @@ export async function POST(req: Request) {
     // getSpacePda(operatorPublicKey, nameSeedPublicKey) in src/lib/solana/program.ts
     // is ready — wire it here once the program is deployed to devnet.
     const id = crypto.randomUUID();
+    const gatedUrl = parsed.data.gatedUrl || undefined;
     const space: Space = {
       id,
       ...parsed.data,
+      gatedUrl,
+      spacePda: parsed.data.spacePda ?? undefined,
       operatorShortAddress: shortenAddress(parsed.data.operatorAddress),
       inviteUrl: `${process.env["NEXT_PUBLIC_APP_URL"] ?? ""}/space/${id}`,
       createdAt: new Date().toISOString(),
       memberCount: 0,
     };
 
-    pushSpace(space);
+    await pushSpace(space);
     return NextResponse.json(space, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
