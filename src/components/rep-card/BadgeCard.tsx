@@ -2,11 +2,11 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { Badge } from "@/types";
 
-const TIER_DOT: Record<string, string> = {
+{/*const TIER_DOT: Record<string, string> = {
   Active: "bg-[hsl(181,80%,50%)]",
   Strong: "bg-[hsl(32,90%,55%)]",
   Elite: "bg-white/80",
-};
+};*/}
 
 interface BadgeCardProps {
   badge: Badge;
@@ -17,7 +17,7 @@ interface BadgeCardProps {
 
 export function BadgeCard({ badge, active = false, size = 200, className }: BadgeCardProps) {
   const height = size;
-  const dot = badge.tier ? (TIER_DOT[badge.tier] ?? TIER_DOT.Active) : "";
+  //const dot = badge.tier ? (TIER_DOT[badge.tier] ?? TIER_DOT.Active) : "";
 
   return (
     <div
@@ -45,10 +45,6 @@ export function BadgeCard({ badge, active = false, size = 200, className }: Badg
             <p className="label-caps text-[10px] text-[hsl(0,0%,60%)]">{badge.label}</p>
           </div>
         </div>
-      )}
-
-      {badge.tier && active && (
-        <span className={cn("absolute top-2.5 right-2.5 h-2 w-2 rounded-full", dot)} />
       )}
     </div>
   );
