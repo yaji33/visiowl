@@ -37,9 +37,11 @@ Scores are stored in on-chain **RepCard PDAs**, queryable by any Solana program 
 
 1. Connect wallet **or paste any address** → Rep Card loads in seconds
 2. See your score, tier, signal breakdown, and earned badges
-3. Follow personalised **Next Steps** to grow your score on real Solana platforms
-4. Create a **Verified Space** to gate your community by minimum Rep Score
-5. Share your Rep Card — your on-chain proof, visible to everyone
+3. Follow personalised **Next Steps** (PlatformGrid) to grow your score on real Solana platforms
+4. Browse **Featured Spaces** → join a score-gated community → appear in the member leaderboard
+5. Operators post **Events** (AMA, mint, vote, airdrop) → members return for each event
+6. Your wallet profile shows **global rank** + every Space you're a member of
+7. Share your Rep Card — your on-chain proof, visible to everyone
 
 ### Protocol integration (30 seconds)
 
@@ -47,6 +49,10 @@ Scores are stored in on-chain **RepCard PDAs**, queryable by any Solana program 
 # Before any airdrop, mint gate, or DAO vote — check wallet quality:
 curl "https://visiowl.app/api/score?address=<pubkey>"
 # → { score: 437, tier: "Power User", signals: [...], badges: [...] }
+
+# Pull a live, sybil-filtered allowlist for your Verified Space:
+curl "https://visiowl.app/api/space/<space-id>/members"
+# → [{ address, shortAddress, score, tier, joinedAt }, ...]  — sorted by score desc
 ```
 
 ---
@@ -110,26 +116,31 @@ Visiowl surfaces the most relevant platforms for each signal gap. These are the 
 
 ### ✅ Shipped
 
-| Feature                                                                                      | Location                                          |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Rep Score API — `GET /api/score?address=<pubkey>`                                            | `src/app/api/score/route.ts`                      |
-| Rep Card — tiered, badged, shareable                                                         | `src/components/rep-card/`                        |
-| Wallet Lookup — paste any address on home                                                    | `src/app/page.tsx`                                |
-| Leaderboard — wallets ranked by Rep Score                                                    | `src/app/activity/page.tsx`                       |
-| Verified Spaces — score-gated community links                                                | `src/app/spaces/` · `src/app/space/`              |
-| Solana Actions / Blinks — Rep Card as a Blink                                                | `src/app/api/actions/wallet/[address]/route.ts`   |
-| Degen Badge — pump.fun detection                                                             | `src/lib/scoring/helius.ts` · `src/lib/badges.ts` |
-| On-chain RepCard PDA — `initialize_rep_card`, `update_score`, `award_badge`, `verify_access` | `programs/visiowl/`                               |
-| Next Steps panel — personalised score-growth actions                                         | `src/components/rep-card/LevelUpPanel.tsx`        |
+| Feature                                                                                      | Location                                                 |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Rep Score API — `GET /api/score?address=<pubkey>`                                            | `src/app/api/score/route.ts`                             |
+| Rep Card — tiered, badged, shareable                                                         | `src/components/rep-card/`                               |
+| Wallet Lookup — paste any address on home                                                    | `src/app/page.tsx`                                       |
+| Leaderboard — wallets ranked by Rep Score, **Redis-persisted**                               | `src/app/activity/page.tsx` · `src/lib/feed-store.ts`    |
+| Verified Spaces — score-gated community links, on-chain `create_space` TX wired              | `src/app/spaces/` · `src/app/space/`                     |
+| Solana Actions / Blinks — Rep Card as a Blink                                                | `src/app/api/actions/wallet/[address]/route.ts`          |
+| Degen Badge — pump.fun detection                                                             | `src/lib/scoring/helius.ts` · `src/lib/badges.ts`        |
+| On-chain RepCard PDA — `initialize_rep_card`, `update_score`, `award_badge`, `verify_access` | `programs/visiowl/`                                      |
+| PlatformGrid — card grid of all score opportunities + ecosystem platforms                    | `src/components/rep-card/PlatformGrid.tsx`               |
+| Space Events — operators post AMA/mint/vote/airdrop; Redis-backed                            | `src/app/api/space/[id]/events/route.ts`                 |
+| Member Leaderboard — per-Space; ranked by Rep Score; social proof loop                       | `src/app/space/[id]/page.tsx` · `src/lib/space-store.ts` |
+| Allowlist API — `GET /api/space/{id}/members` public JSON, sorted by score                   | `src/app/api/space/[id]/members/route.ts`                |
+| Featured Spaces — home page discovery; top Spaces by member count                            | `src/components/spaces/FeaturedSpaces.tsx`               |
+| Wallet profile enrichment — global rank + "Member of" Spaces section                         | `src/app/wallet/[address]/page.tsx`                      |
 
 ### 🔜 Planned
 
-| Feature                          | Description                                                                                                                                                      |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Trustless score oracle**       | Replace centralized `score_authority` with a Switchboard oracle feed or ZK-compressed proof of Helius data. The PDA computation becomes verifiable by any party. |
-| **`create_space` on-chain wire** | Connect the frontend Space creation form to the `create_space` Anchor instruction (PDA currently stored in Redis; instruction is implemented and tested).        |
-| **Protocol demo integration**    | A devnet NFT mint gated by `RepScore ≥ 200` — demonstrates the CPI verification path end-to-end.                                                                 |
-| **Dialect notifications**        | Tier-crossing alerts when your Rep Score hits a new threshold — no email or centralised push required.                                                           |
+| Feature                       | Description                                                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trustless score oracle**    | Replace centralized `score_authority` with a Switchboard oracle feed or ZK-compressed proof of Helius data. The PDA computation becomes verifiable by any party. |
+| **Protocol demo integration** | A devnet NFT mint gated by `RepScore ≥ 200` — demonstrates the CPI verification path end-to-end.                                                                 |
+| **Dialect notifications**     | Tier-crossing alerts when your Rep Score hits a new threshold — no email or centralised push required.                                                           |
+| **Operator CSV export**       | One-click download of a Space's member list as CSV — direct import into Gumdrop, CandyMachine, or custom allowlist scripts.                                      |
 
 ### Oracle Trust Model (current)
 
@@ -230,25 +241,36 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 src/
-├── app/                  # Pages + API routes (App Router)
-│   ├── page.tsx          # Landing — wallet connect + hero card
-│   ├── wallet/[address]/ # Public profile page
-│   ├── space/[id]/       # Verified Space access flow
-│   ├── activity/         # Public activity feed
-│   └── api/score|space   # Route handlers
+├── app/                         # Pages + API routes (App Router)
+│   ├── page.tsx                 # Landing — hero, leaderboard preview, Featured Spaces
+│   ├── wallet/[address]/        # Public profile — rank, Rep Card, PlatformGrid, spaces
+│   ├── space/[id]/              # Verified Space — access gate, Events, Member Leaderboard
+│   ├── spaces/                  # Spaces directory
+│   ├── space/new/               # Create Space form (Anchor TX + Redis)
+│   ├── activity/                # Global leaderboard
+│   └── api/
+│       ├── score/               # POST (compute + cache) · GET ?address=
+│       ├── feed/                # GET feed + leaderboard (Redis)
+│       ├── space/               # GET list · POST create
+│       ├── space/[id]/          # GET · PATCH (join + member write)
+│       ├── space/[id]/members/  # GET — public allowlist API
+│       └── space/[id]/events/   # GET list · POST create (operator)
 ├── components/
-│   ├── rep-card/         # RepCard, RepScore, SignalBar, WalletStamp…
-│   ├── spaces/           # AccessGate, ThresholdPicker
-│   ├── feed/             # FeedRow
-│   └── layout/           # Nav, Providers
+│   ├── rep-card/                # RepCard, PlatformGrid, SignalBar, WalletStamp, TierBadge…
+│   ├── spaces/                  # AccessGate, ThresholdPicker, FeaturedSpaces, SpaceEventCard
+│   ├── feed/                    # FeedRow, LeaderboardPreview
+│   └── layout/                  # Nav, Providers
 ├── lib/
-│   ├── scoring/          # Weighted signal computation engine
-│   ├── solana/           # Wallet provider, Anchor program client (`program.ts`)
-│   ├── hooks/            # useRepScore
-│   ├── utils/            # cn, address, tier, seededRandom
-│   └── validators/       # Zod schemas
-├── stores/               # Zustand (ScoreStore, UIStore)
-└── types/                # Shared TypeScript types
+│   ├── scoring/                 # compute.ts · helius.ts
+│   ├── solana/                  # program.ts (Anchor client + PDAs)
+│   ├── hooks/                   # useRepScore · useSpace(s) · useFeed · useSpaceMembers · useSpaceEvents
+│   ├── feed-store.ts            # Redis-backed leaderboard + feed
+│   ├── space-store.ts           # Redis-backed spaces + members + events
+│   ├── redis.ts                 # Upstash Redis client
+│   ├── utils/                   # cn, address, tier, seededRandom
+│   └── validators/              # Zod schemas (Space, Event)
+├── stores/                      # Zustand (ScoreStore, UIStore)
+└── types/                       # Shared TypeScript types (Space, SpaceMember, SpaceEvent…)
 ```
 
 ## Agentic Coding

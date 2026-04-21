@@ -35,18 +35,23 @@ against Helius with the same address — the computation is deterministic and op
 - `GET /api/score?address=<pubkey>` — public REST API
 - Rep Card with tiered scores, badges, and signal breakdown
 - Wallet Lookup — paste any address on the home page
-- Leaderboard — `/activity` page ranked by Rep Score descending
-- Verified Spaces — score-gated community access links (Redis-backed, on-chain wire pending)
+- Leaderboard — `/activity` ranked by Rep Score; **Redis-persisted** via Upstash
+- Verified Spaces — score-gated community access links; `create_space` Anchor TX wired client-side
 - Solana Actions / Blinks — Rep Card as a Blink
 - Degen Badge — pump.fun detection
 - On-chain RepCard PDA with `initialize_rep_card`, `update_score`, `award_badge`, `verify_access`
-- Next Steps panel — personalised score-growth action guide
+- PlatformGrid — card grid replacing LevelUpPanel; shows all score opportunities + ecosystem
+- Space Events — operators post AMA/mint/vote/airdrop; `GET|POST /api/space/{id}/events`
+- Member Leaderboard — per-Space; ranked by Rep Score; Redis hash `visiowl:space-members:{id}`
+- Allowlist API — `GET /api/space/{id}/members` — public JSON of verified members sorted by score
+- Featured Spaces — home page section; top Spaces by member count; uses `useSpaces` hook
+- Wallet profile enrichment — global rank (from leaderboard) + "Member of" Spaces section
 
 ### Planned (priority order)
 
-1. Wire `create_space` Anchor instruction from the frontend (replace Redis TODO)
-2. Trustless oracle via Switchboard or ZK compression
-3. Protocol demo: devnet NFT mint gated by RepScore ≥ 200 (CPI path)
+1. Trustless oracle via Switchboard or ZK compression
+2. Protocol demo: devnet NFT mint gated by RepScore ≥ 200 (CPI path)
+3. Operator CSV export for Space member list
 4. Dialect notifications for tier-crossing events
 
 ---
@@ -69,26 +74,36 @@ Motion (motion/react) · Solana Wallet Adapter · Anchor · TanStack Query · Zu
 
 ```
 src/
-├── app/                  # Next.js App Router pages + API routes
-│   ├── layout.tsx        # Root layout — providers, fonts, nav
-│   ├── page.tsx          # Landing / wallet connect hero
-│   ├── wallet/[address]/ # Public profile page
-│   ├── space/[id]/       # Verified Space access flow
-│   ├── activity/         # Public activity feed
-│   └── api/              # Route handlers (score, space)
+├── app/
+│   ├── page.tsx                 # Landing — hero, leaderboard preview, Featured Spaces
+│   ├── wallet/[address]/        # Public profile — global rank, Rep Card, PlatformGrid, spaces
+│   ├── space/[id]/              # Verified Space — access gate, Events, Member Leaderboard
+│   ├── spaces/                  # Spaces directory
+│   ├── space/new/               # Create Space form (Anchor TX + Redis)
+│   ├── activity/                # Global leaderboard
+│   └── api/
+│       ├── score/               # POST compute+cache · GET ?address=
+│       ├── feed/                # GET feed + leaderboard (Redis)
+│       ├── space/               # GET list · POST create
+│       ├── space/[id]/          # GET · PATCH (join + member write)
+│       ├── space/[id]/members/  # GET — public allowlist API
+│       └── space/[id]/events/   # GET list · POST create
 ├── components/
-│   ├── rep-card/         # RepCard, RepScore, SignalBar, WalletStamp, …
-│   ├── spaces/           # AccessGate, ThresholdPicker, SpaceCard
-│   ├── feed/             # FeedRow, ActivityFeed
-│   └── layout/           # Nav, Footer, Providers
+│   ├── rep-card/                # RepCard, PlatformGrid, SignalBar, WalletStamp, TierBadge
+│   ├── spaces/                  # AccessGate, ThresholdPicker, FeaturedSpaces, SpaceEventCard
+│   ├── feed/                    # FeedRow, LeaderboardPreview
+│   └── layout/                  # Nav, Providers
 ├── lib/
-│   ├── scoring/          # compute.ts — weighted signal engine
-│   ├── solana/           # RPC client, wallet provider
-│   ├── hooks/            # useRepScore, useSpace, useFeed
-│   ├── utils/            # cn, address, tier helpers
-│   └── validators/       # Zod schemas
-├── stores/               # Zustand — score store, UI store
-└── types/                # Shared TypeScript types
+│   ├── scoring/                 # compute.ts · helius.ts
+│   ├── solana/                  # program.ts (Anchor client + PDAs)
+│   ├── hooks/                   # useRepScore · useSpace(s) · useFeed · useSpaceMembers · useSpaceEvents
+│   ├── feed-store.ts            # Redis-backed leaderboard + feed entries
+│   ├── space-store.ts           # Redis-backed spaces + members + events
+│   ├── redis.ts                 # Upstash Redis client
+│   ├── utils/                   # cn, address, tier, seededRandom
+│   └── validators/              # Zod schemas
+├── stores/                      # Zustand (ScoreStore, UIStore)
+└── types/                       # Space · SpaceMember · SpaceEvent · LevelUpAction · …
 ```
 
 ---
