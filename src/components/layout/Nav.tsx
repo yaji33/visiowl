@@ -39,7 +39,7 @@ export function Nav() {
           </span>
         </Link>
         <nav className="flex items-center gap-6">
-          {navLink("/activity", "Activity")}
+          {navLink("/activity", "Leaderboard")}
           {navLink("/spaces", "Spaces")}
           {publicKey ? (
             <div className="flex items-center gap-4">

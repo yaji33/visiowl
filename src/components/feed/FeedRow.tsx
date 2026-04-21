@@ -1,19 +1,45 @@
 import Link from "next/link";
 import { WalletStamp } from "@/components/rep-card/WalletStamp";
-import { TierBadge }   from "@/components/rep-card/TierBadge";
+import { TierBadge } from "@/components/rep-card/TierBadge";
 import { formatRelativeTime } from "@/lib/utils";
 import type { FeedEntry } from "@/types";
 
-interface FeedRowProps { entry: FeedEntry }
+const MAX_SCORE = 1000;
 
-export function FeedRow({ entry }: FeedRowProps) {
+interface FeedRowProps {
+  entry: FeedEntry;
+  rank: number;
+}
+
+export function FeedRow({ entry, rank }: FeedRowProps) {
+  const scorePct = Math.min(100, Math.round((entry.score / MAX_SCORE) * 100));
   return (
-    <Link href={`/wallet/${entry.address}`} className="flex items-center gap-4 border-b border-[hsl(var(--border-light))] py-4 last:border-0 hover:bg-[hsl(var(--secondary))] transition-colors px-2 -mx-2 rounded-sm">
+    <Link
+      href={`/wallet/${entry.address}`}
+      className="-mx-2 flex items-center gap-3 rounded-sm border-b border-[hsl(var(--border-light))] px-2 py-4 transition-colors last:border-0 hover:bg-[hsl(var(--secondary))]"
+    >
+      <span className="address-mono w-7 shrink-0 text-right text-xs text-[hsl(var(--muted-foreground))]">
+        #{rank}
+      </span>
       <WalletStamp address={entry.address} size={36} />
-      <span className="address-mono flex-1 text-sm text-[hsl(var(--foreground))]">{entry.shortAddress}</span>
-      <span className="font-serif-display text-2xl font-light text-[hsl(var(--foreground))]">{entry.score}</span>
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <span className="address-mono block text-sm text-[hsl(var(--foreground))]">
+          {entry.shortAddress}
+        </span>
+        <div className="h-1 w-full overflow-hidden rounded-full bg-[hsl(var(--secondary))]">
+          <div
+            className="h-full rounded-full bg-[hsl(var(--accent))] transition-all"
+            style={{ width: `${scorePct}%` }}
+          />
+        </div>
+      </div>
+      <span className="font-serif-display text-2xl font-light text-[hsl(var(--foreground))]">
+        {entry.score}
+      </span>
       <TierBadge tier={entry.tier} size="sm" />
-      <span className="w-20 text-right text-xs text-[hsl(var(--muted-foreground))]">{formatRelativeTime(entry.generatedAt)}</span>
+      <span className="hidden w-20 text-right text-xs text-[hsl(var(--muted-foreground))] sm:block">
+        {formatRelativeTime(entry.generatedAt)}
+      </span>
     </Link>
   );
 }
