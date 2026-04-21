@@ -5,6 +5,25 @@ import { computeRepScore } from "@/lib/scoring/compute";
 import { pushFeedEntry } from "@/lib/feed-store";
 import { shortenAddress } from "@/lib/utils";
 
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const address = searchParams.get("address");
+  const parsed = ScoreRefreshSchema.safeParse({ address });
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: "address query param is required and must be a valid Solana public key" },
+      { status: 400 },
+    );
+  try {
+    const raw = await fetchWalletData(parsed.data.address);
+    const result = computeRepScore(raw);
+    return NextResponse.json(result);
+  } catch (err) {
+    console.error("Score GET error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as unknown;
@@ -16,7 +35,7 @@ export async function POST(req: Request) {
     const raw = await fetchWalletData(address);
     const result = computeRepScore(raw);
 
-    pushFeedEntry({
+    await pushFeedEntry({
       id: address,
       address,
       shortAddress: shortenAddress(address),

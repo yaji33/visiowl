@@ -15,9 +15,6 @@ export async function POST(req: Request) {
     if (!parsed.success)
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-    // TODO: Write Space PDA to Solana via Anchor (create_space instruction).
-    // getSpacePda(operatorPublicKey, nameSeedPublicKey) in src/lib/solana/program.ts
-    // is ready — wire it here once the program is deployed to devnet.
     const id = crypto.randomUUID();
     const gatedUrl = parsed.data.gatedUrl || undefined;
     const space: Space = {
