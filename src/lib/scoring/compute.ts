@@ -154,35 +154,44 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
     ...(data.pumpfunTxCount > 0 ? [award("degen")] : []),
   ];
 
+  const stakingGap = 200 - Math.round(raw.staking * 200);
+  const governanceGap = 200 - Math.round(raw.governance * 200);
+  const defiGap = 200 - Math.round(raw.defi * 200);
+  const nftGap = 150 - Math.round(raw.nft * 150);
+  const txGap = 150 - Math.round(raw.tx * 150);
+
   const scoreActions: LevelUpAction[] = [
-    ...(raw.staking < 0.5
+    ...(raw.staking < 0.85
       ? [
           {
             icon: "coins" as const,
             action: data.stakingMonths === 0 ? "Start staking SOL" : "Stake SOL for longer",
             detail:
               data.stakingMonths === 0
-                ? `Unlock up to ${200 - Math.round(raw.staking * 200)} points — try Marinade (mSOL), Jito (MEV rewards), BlazeStake (BLZE), or Sanctum`
-                : `Up to ${200 - Math.round(raw.staking * 200)} more points — Jito offers MEV-boosted liquid staking; BlazeStake rewards stakers with BLZE`,
+                ? `Up to ${stakingGap} pts — try Marinade (mSOL), Jito (MEV rewards), BlazeStake (BLZE), or Sanctum`
+                : `Up to ${stakingGap} more pts — Jito offers MEV-boosted liquid staking; BlazeStake rewards with BLZE tokens`,
             link: data.stakingMonths === 0 ? "https://marinade.finance" : "https://jito.network",
             linkLabel: data.stakingMonths === 0 ? "Stake with Marinade →" : "Boost with Jito →",
-            pointsAvailable: 200 - Math.round(raw.staking * 200),
+            pointsAvailable: stakingGap,
           },
         ]
       : []),
-    ...(raw.governance < 0.6
+    ...(raw.governance < 0.85
       ? [
           {
             icon: "vote" as const,
-            action: "Vote in Solana governance proposals",
-            detail: `Up to ${Math.round((0.6 - raw.governance) * 200)} points — Realms hosts Mango, Drift, Orca, and dozens of active DAOs`,
+            action:
+              data.governanceVoteCount === 0
+                ? "Cast your first governance vote"
+                : "Vote in more Solana DAOs",
+            detail: `Up to ${governanceGap} pts — Realms hosts Mango, Drift, Orca, and dozens of active DAOs`,
             link: "https://app.realms.today",
             linkLabel: "Vote on Realms →",
-            pointsAvailable: Math.round((0.6 - raw.governance) * 200),
+            pointsAvailable: governanceGap,
           },
         ]
       : []),
-    ...(raw.defi < 0.5
+    ...(raw.defi < 0.85
       ? [
           {
             icon: "layers" as const,
@@ -192,32 +201,45 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
                 : "Explore a new DeFi protocol",
             detail:
               data.defiProtocolCount === 0
-                ? "Adds up to 50 points — start with Jupiter for swaps, then explore Kamino (lending), Drift (perps), or Meteora (dynamic pools)"
-                : `Adds up to 50 points — try Kamino Finance (yield/lending), Drift Protocol (perps & vaults), or Meteora (DLMM pools)`,
+                ? `Up to ${defiGap} pts — start with Jupiter for swaps, then Kamino (lending), Drift (perps), or Meteora (dynamic pools)`
+                : `Up to ${defiGap} pts — try Kamino Finance (lending), Drift Protocol (perps & vaults), Meteora (DLMM), or Raydium (AMM)`,
             link: data.defiProtocolCount === 0 ? "https://jup.ag" : "https://kamino.finance",
             linkLabel: data.defiProtocolCount === 0 ? "Start with Jupiter →" : "Try Kamino →",
-            pointsAvailable: 50,
+            pointsAvailable: defiGap,
           },
         ]
       : []),
-    ...(raw.nft < 0.4
+    ...(raw.nft < 0.7
       ? [
           {
             icon: "image" as const,
-            action: "Collect and hold an NFT for 6+ months",
+            action:
+              data.nftHeldCount === 0
+                ? "Collect and hold an NFT"
+                : "Hold NFTs for longer conviction",
             detail:
               data.nftHeldCount === 0
-                ? "Start free on DRiP Haus, or browse collections on Tensor for analytics-driven buying"
-                : "Long-held NFTs score highest — use Tensor's portfolio tools to track conviction holds",
+                ? `Up to ${nftGap} pts — start free on DRiP Haus, or browse collections on Tensor and Magic Eden`
+                : `Up to ${nftGap} pts — long-held NFTs score highest; use Tensor's portfolio tools to track conviction holds`,
             link: data.nftHeldCount === 0 ? "https://drip.haus" : "https://tensor.trade",
             linkLabel: data.nftHeldCount === 0 ? "Get free drops on DRiP →" : "Browse Tensor →",
-            pointsAvailable: 60,
+            pointsAvailable: nftGap,
           },
         ]
       : []),
-  ]
-    .sort((a, b) => b.pointsAvailable - a.pointsAvailable)
-    .slice(0, 3);
+    ...(raw.tx < 0.6
+      ? [
+          {
+            icon: "activity" as const,
+            action: "Interact with more Solana programs",
+            detail: `Up to ${txGap} pts — breadth across programs matters; try Raydium (AMM), Orca (Whirlpools), Phoenix (CLOB), or Marginfi (lending)`,
+            link: "https://raydium.io",
+            linkLabel: "Explore Raydium →",
+            pointsAvailable: txGap,
+          },
+        ]
+      : []),
+  ].sort((a, b) => b.pointsAvailable - a.pointsAvailable);
 
   const communityActions: LevelUpAction[] = [
     {
@@ -227,6 +249,24 @@ export function computeRepScore(data: RawWalletData): ScoreResponse {
         "Bounties, grants, and ecosystem connections across Solana — open to any verified contributor",
       link: "https://superteam.fun",
       linkLabel: "Explore Superteam →",
+      pointsAvailable: 0,
+    },
+    {
+      icon: "users" as const,
+      action: "Enter a Colosseum hackathon",
+      detail:
+        "5-week online sprints with $250K in prizes and a path into the Colosseum accelerator",
+      link: "https://colosseum.org",
+      linkLabel: "Join Colosseum →",
+      pointsAvailable: 0,
+    },
+    {
+      icon: "users" as const,
+      action: "Set up Dialect notifications",
+      detail:
+        "On-chain messaging and smart alerts — get notified when your Rep Score crosses a tier",
+      link: "https://dialect.to",
+      linkLabel: "Try Dialect →",
       pointsAvailable: 0,
     },
   ];
