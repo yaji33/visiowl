@@ -45,8 +45,8 @@ export default function CreateSpacePage() {
           .rpc();
         const [pdaKey] = getSpacePda(publicKey, nameSeed.publicKey);
         spacePda = pdaKey.toBase58();
-      } catch {
-
+      } catch (err) {
+        console.warn("[create_space] on-chain TX failed — falling back to Redis-only space:", err);
       }
     }
 
