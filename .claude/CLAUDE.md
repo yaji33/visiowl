@@ -1,9 +1,61 @@
 # Visiowl — Claude Agentic Coding Guide
 
+## Product Strategy (updated Apr 2026)
+
+### Positioning
+
+Visiowl is **Solana's sybil-resistant identity layer** — an API-first infrastructure
+primitive that any protocol can integrate in one call to filter bots and qualify
+wallets before airdrops, mints, and DAO votes.
+
+The **Rep Card** is the consumer-facing proof and viral marketing surface.
+The **API** (`GET /api/score?address=<pubkey>`) is the product.
+The **RepCard PDA** is the on-chain canonical record, queryable via CPI.
+
+### Why this positioning wins
+
+- Solana protocols lose millions per launch to sybil wallets — clear market pain
+- No shared behavioral identity primitive exists on Solana today
+- API-SaaS model has a clear revenue path (per-call or protocol subscription)
+- On-chain PDAs make the score composable and permanent, not just a dashboard
+
+### Oracle Trust Model (honest, documented)
+
+Current pipeline: `Helius API → Next.js server → score_authority keypair → RepCard PDA`
+
+The `score_authority` keypair is centralized (hardcoded in `programs/visiowl/src/lib.rs`).
+This is an acknowledged hackathon-window trade-off. The roadmap replaces it with a
+Switchboard oracle or ZK-compressed Helius proof, making updates permissionless.
+
+Anyone can independently verify any score by rerunning `fetchWalletData` + `computeRepScore`
+against Helius with the same address — the computation is deterministic and open-source.
+
+### Shipped features (as of Apr 2026)
+
+- `GET /api/score?address=<pubkey>` — public REST API
+- Rep Card with tiered scores, badges, and signal breakdown
+- Wallet Lookup — paste any address on the home page
+- Leaderboard — `/activity` page ranked by Rep Score descending
+- Verified Spaces — score-gated community access links (Redis-backed, on-chain wire pending)
+- Solana Actions / Blinks — Rep Card as a Blink
+- Degen Badge — pump.fun detection
+- On-chain RepCard PDA with `initialize_rep_card`, `update_score`, `award_badge`, `verify_access`
+- Next Steps panel — personalised score-growth action guide
+
+### Planned (priority order)
+
+1. Wire `create_space` Anchor instruction from the frontend (replace Redis TODO)
+2. Trustless oracle via Switchboard or ZK compression
+3. Protocol demo: devnet NFT mint gated by RepScore ≥ 200 (CPI path)
+4. Dialect notifications for tier-crossing events
+
+---
+
 ## Project Overview
 
-Visiowl is the public reputation layer for Solana. Every wallet instantly receives
-a beautiful, shareable Rep Card that turns on-chain history into visible social capital.
+Visiowl is the sybil-resistant identity layer for Solana. Every wallet gets a
+real-time Rep Score from six behavioral on-chain signals. Protocols query it via
+a single REST API call. The score lives permanently in a Solana RepCard PDA.
 
 **Stack:** Next.js 16 App Router · React 19.2 · TypeScript (strict) · Tailwind v4
 Motion (motion/react) · Solana Wallet Adapter · Anchor · TanStack Query · Zustand · Zod
@@ -176,14 +228,14 @@ After any redeployment, update both.
 
 ### Instructions
 
-| Instruction         | Caller              | Description                              |
-| ------------------- | ------------------- | ---------------------------------------- |
-| initialize_rep_card | wallet owner        | Creates RepCard PDA for a wallet         |
-| update_score        | score_authority     | Updates score + tier (backend keypair)   |
-| award_badge         | score_authority     | Awards a named badge to a wallet         |
-| set_visibility      | wallet owner        | Toggles public visibility in activity feed |
-| create_space        | anyone              | Creates a gated Verified Space           |
-| verify_access       | wallet owner        | Proves score meets Space threshold       |
+| Instruction         | Caller          | Description                                |
+| ------------------- | --------------- | ------------------------------------------ |
+| initialize_rep_card | wallet owner    | Creates RepCard PDA for a wallet           |
+| update_score        | score_authority | Updates score + tier (backend keypair)     |
+| award_badge         | score_authority | Awards a named badge to a wallet           |
+| set_visibility      | wallet owner    | Toggles public visibility in activity feed |
+| create_space        | anyone          | Creates a gated Verified Space             |
+| verify_access       | wallet owner    | Proves score meets Space threshold         |
 
 ### Build & Deploy
 

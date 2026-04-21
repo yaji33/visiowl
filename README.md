@@ -1,33 +1,53 @@
 # Visiowl 🦉
 
-> **The public reputation layer for Solana.** Every wallet instantly gets a shareable Rep Card — a beautiful, on-chain identity that turns transaction history into visible social capital.
+> **The sybil-resistant identity layer for Solana.** Any wallet gets a real-time Rep Score from six on-chain signals. Any protocol queries it with a single API call — to filter bots, gate allowlists, and qualify voters before they cost you millions.
 
 Built for the **Solana Frontier Hackathon** (April 6 – May 11, 2026) · Consumer App track.
 
 ---
 
+## The Problem
+
+Every airdrop, NFT mint, DAO vote, and token distribution on Solana is exposed to the same threat: sybil wallets and bots claiming rewards they didn't earn. Projects routinely lose millions per launch to fake participants, and every protocol rolls its own heuristics to compensate — poorly, expensively, and differently each time.
+
+**Solana has no shared behavioral identity primitive.** Visiowl is that primitive.
+
+---
+
 ## What is Visiowl?
 
-Visiowl answers one question: _"Who is this wallet, really?"_
+Visiowl reads any Solana wallet's on-chain history through Helius, computes a **Rep Score** across six weighted behavioral signals, and exposes the result in two ways:
 
-It reads any Solana wallet's on-chain history through Helius, computes a **Rep Score** across six weighted signals, and surfaces the result as a visual **Rep Card** — tiered, badged, and shareable. Wallets with high Rep Scores can create or join **Verified Spaces**, gating communities and allowlists by proven on-chain reputation instead of bot-susceptible invite codes.
+1. **API** — `GET /api/score?address=<pubkey>` — any protocol integrates sybil filtering in one line
+2. **Rep Card** — a visual, shareable identity card that turns on-chain history into social capital
+
+Scores are stored in on-chain **RepCard PDAs**, queryable by any Solana program via CPI — no server dependency for the final verification step.
 
 ### Who it's for
 
-| User                         | What they get                                                     |
-| ---------------------------- | ----------------------------------------------------------------- |
-| **Any Solana wallet holder** | Instant Rep Card — know your standing, share your story           |
-| **Community operators**      | Verified Spaces — gate Discord/allowlist access by Rep Score      |
-| **NFT & token projects**     | Sybil-resistant allowlists of quality holders, queryable on-chain |
-| **New Solana users**         | Guided Next Steps toward real platforms to build their reputation |
+| Audience                 | Value                                                                    |
+| ------------------------ | ------------------------------------------------------------------------ |
+| **Solana protocols**     | One API call to filter sybils before airdrops, mints, and DAO votes      |
+| **Community operators**  | Verified Spaces — gate access by proven Rep Score instead of invite bots |
+| **NFT & token projects** | On-chain allowlists of quality holders, queryable by any program via CPI |
+| **Any wallet holder**    | Instant Rep Card — know your standing, share your proof, grow your score |
+| **New Solana users**     | Guided Next Steps toward real platforms to build on-chain reputation     |
 
 ### User journey
 
-1. Connect wallet (or paste any address) → Rep Card loads in seconds
-2. See your score, tier, signals breakdown, and earned badges
+1. Connect wallet **or paste any address** → Rep Card loads in seconds
+2. See your score, tier, signal breakdown, and earned badges
 3. Follow personalised **Next Steps** to grow your score on real Solana platforms
 4. Create a **Verified Space** to gate your community by minimum Rep Score
-5. Share your Rep Card — your on-chain identity, visible to everyone
+5. Share your Rep Card — your on-chain proof, visible to everyone
+
+### Protocol integration (30 seconds)
+
+```bash
+# Before any airdrop, mint gate, or DAO vote — check wallet quality:
+curl "https://visiowl.app/api/score?address=<pubkey>"
+# → { score: 437, tier: "Power User", signals: [...], badges: [...] }
+```
 
 ---
 
@@ -86,35 +106,38 @@ Visiowl surfaces the most relevant platforms for each signal gap. These are the 
 
 ---
 
-## Proposed Enhancements
+## Roadmap
 
-The following improvements are validated and planned for the hackathon window:
+### ✅ Shipped
 
-### 1. Solana Actions / Blinks — _Rep Card as a Blink_ ✅
+| Feature                                                                                      | Location                                          |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Rep Score API — `GET /api/score?address=<pubkey>`                                            | `src/app/api/score/route.ts`                      |
+| Rep Card — tiered, badged, shareable                                                         | `src/components/rep-card/`                        |
+| Wallet Lookup — paste any address on home                                                    | `src/app/page.tsx`                                |
+| Leaderboard — wallets ranked by Rep Score                                                    | `src/app/activity/page.tsx`                       |
+| Verified Spaces — score-gated community links                                                | `src/app/spaces/` · `src/app/space/`              |
+| Solana Actions / Blinks — Rep Card as a Blink                                                | `src/app/api/actions/wallet/[address]/route.ts`   |
+| Degen Badge — pump.fun detection                                                             | `src/lib/scoring/helius.ts` · `src/lib/badges.ts` |
+| On-chain RepCard PDA — `initialize_rep_card`, `update_score`, `award_badge`, `verify_access` | `programs/visiowl/`                               |
+| Next Steps panel — personalised score-growth actions                                         | `src/components/rep-card/LevelUpPanel.tsx`        |
 
-Any Rep Card URL is a native [Solana Action](https://solana.com/docs/advanced/actions) — renders interactively inside Phantom, Backpack, X posts, and Dialect. Share `https://visiowl.app/api/actions/wallet/<address>` and any Blink-compatible client shows score, tier, badges, and a "View Full Rep Card" button.
+### 🔜 Planned
 
-> Implemented: `src/app/api/actions/wallet/[address]/route.ts` · `public/actions.json` · CORS via `next.config.ts`
+| Feature                          | Description                                                                                                                                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trustless score oracle**       | Replace centralized `score_authority` with a Switchboard oracle feed or ZK-compressed proof of Helius data. The PDA computation becomes verifiable by any party. |
+| **`create_space` on-chain wire** | Connect the frontend Space creation form to the `create_space` Anchor instruction (PDA currently stored in Redis; instruction is implemented and tested).        |
+| **Protocol demo integration**    | A devnet NFT mint gated by `RepScore ≥ 200` — demonstrates the CPI verification path end-to-end.                                                                 |
+| **Dialect notifications**        | Tier-crossing alerts when your Rep Score hits a new threshold — no email or centralised push required.                                                           |
 
-### 2. Spaces — On-chain Allowlist + Gated Link
+### Oracle Trust Model (current)
 
-Two layers of real utility for Verified Spaces:
+The score computation pipeline is: `Helius API → Next.js server → centralized score_authority keypair → RepCard PDA`.
 
-- **Gated Link** ✅ — Space creator stores a private URL (Discord invite, form, allowlist) revealed only to wallets that pass verification
-- **On-chain Allowlist** _(pending)_: `verify_access` instruction appends the caller's pubkey to the Space PDA member list — creates a queryable, sybil-resistant allowlist for NFT mints, DAO airdrops, and token distributions
-  > Target: extend `Space` PDA + `create_space` / `verify_access` instructions
+This is an acknowledged trust assumption for the hackathon window. The score_authority keypair is held by the Visiowl backend; anyone can independently verify the score by rerunning the same Helius calls and computation. The roadmap item above (Switchboard oracle) removes this centralization entirely.
 
-### 3. Memecoin Activity — _"Degen" Badge_ ✅
-
-Detects pump.fun program interactions (`6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P`) from the existing Helius Enhanced Transactions response — zero additional API quota. Awards a standalone **Degen badge** that reflects the full Solana meta without influencing the core Rep Score.
-
-> Implemented: `src/lib/scoring/helius.ts` · `src/lib/badges.ts` · `src/lib/scoring/compute.ts`
-
-### 4. Dialect Notifications — _Score Tier Alerts_
-
-Notify a wallet via Dialect when their Rep Score crosses a tier threshold (e.g., "You just hit Power User!"). Drives re-engagement without email or centralised push.
-
-> Target: `src/app/api/score/route.ts` post-compute hook
+> The `update_score` and `award_badge` instructions require `score_authority::ID` to sign — see `programs/visiowl/programs/visiowl/src/lib.rs:207-217`. The on-chain PDA is the canonical score record; the API is the read interface.
 
 ---
 
@@ -235,4 +258,4 @@ on-chain program overview, and task patterns used with Claude Code.
 
 ---
 
-_Proof of Rep · Visiowl · Solana Frontier Hackathon 2026_
+_Sybil Resistance, On-Chain · Visiowl · Solana Frontier Hackathon 2026_
