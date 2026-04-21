@@ -68,7 +68,7 @@ async function getSignatureData(
     signature: string;
   }>;
   if (!sigs.length) {
-    return { createdAt: Math.floor(Date.now() / 1000) - 60 * 24 * 3600, totalTxCount: 0 };
+    return { createdAt: Math.floor(Date.now() / 1000), totalTxCount: 0 };
   }
   const lastSig = sigs[sigs.length - 1];
   return {
